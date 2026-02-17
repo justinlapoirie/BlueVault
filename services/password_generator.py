@@ -1,4 +1,4 @@
-import secrets
+import secrets 
 import string
 
 def generate_password(length = 12, include_uppercase = True, include_lowercase = True, include_digits = True, include_symbols = True):
