@@ -1,4 +1,8 @@
 import tkinter as tk
+import sys
+import os
+# Ensure the parent directory is in sys.path so 'services' can be imported
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
