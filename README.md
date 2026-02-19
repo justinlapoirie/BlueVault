@@ -15,6 +15,7 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
 - Account management system that allows users to store account information to various applications
 - global encryption/decryption to make more secure
 - import/export user data "vault" as encrpyted zip file
+- .EXE desktop application implementation
 
 ## File Structure:
 <pre>
