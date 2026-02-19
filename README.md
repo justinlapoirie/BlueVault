@@ -16,7 +16,7 @@ In Progress:
 - global encryption/decryption to make more secure
 - import/export user data "vault" as encrpyted zip file
 
-File Structure:
+## File Structure:
 BlueVault/
 ├── BlueVaultMain.py              # Main application entry point (RUN THIS)
 ├── gui/
