@@ -23,19 +23,21 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
     BlueVault/
     ├── BlueVaultMain.py              # Main application entry point (RUN THIS)
     ├── gui/
-    │   ├── ui_login.py               # Login and account creation GUI
+    │   ├── ui_login.py               # Master login and account creation GUI
     │   ├── ui_main_menu.py           # Main menu interface
     │   └── ui_password_generator.py  # Password generator window
     |   └── ui_settings.py            # Controls global variables of BlueVaultMain.py + import/export Vault functionality
+    |   └── ui_account.py             # Store username, password, notes, and hyperlink for external applications
     ├── services/
     │   ├── login.py                  # Authentication backend
     │   └── password_generator.py     # Password generation class
-    │   └── password_auditor.py       # analyzes strength of password + compares to breaches
+    │   └── password_auditor.py       # Analyzes strength of password + compares to breaches
+    │   └── account.py                # Account module backend responsible for vault management
     ├── user_data/                    # Created automatically
-        └── accounts.json             # Encrypted user accounts (auto-generated)
+    |   └── accounts.json             # Encrypted master accounts (auto-generated)
+    │   └── vault.json                # Encrypred username/password data for account modules, lock/unlock with associated master user
     ├── utils/
-    │   ├── rockyou.txt               # common password list
-    │   └── common_passwords.txt      # more common passwords
+    │   └── common_passwords.txt      # Common passwords based on rockyou breach
 </pre>
 
 
