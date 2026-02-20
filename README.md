@@ -8,12 +8,13 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
 - main menu with clean GUI
 - Auto time-out feature(default 5 minutes, eventually will be customizable with settings button)
 - Password Generator with customizable parameters and copy-to-clipboard functionality
+- Password Auditor that checks strength of password and compares it to known breaches
 
 ## In Progress:
-- Password Auditor that checks strength of password and compares it to known breaches
 - settings that allow user to customize global variables, password strength requirements, etc
 - Account management system that allows users to store account information to various applications
-- global encryption/decryption to make more secure
+- direct password generator/auditor interactions with account management system to streamline user experience
+- global encryption/decryption for improved security
 - import/export user data "vault" as encrpyted zip file
 - .EXE desktop application implementation
 
