@@ -14,7 +14,6 @@ class PasswordAuditorApp(tk.Toplevel):
         super().__init__(master)
         self.title("Password Auditor - BlueVault")
         self.geometry("550x600")
-        self.resizable(False, False)
         self.configure(bg="#f0f0f0")
         
         # Import and create password auditor instance
