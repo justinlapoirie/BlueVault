@@ -34,7 +34,7 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
         └── accounts.json             # Encrypted user accounts (auto-generated)
     ├── utils/
     │   ├── rockyou.txt               # common password list
-    │   └── other
+    │   └── common_passwords.txt      # more common passwords
 </pre>
 
 
