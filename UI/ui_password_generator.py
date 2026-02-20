@@ -13,7 +13,7 @@ class PasswordGeneratorApp(tk.Toplevel):
     def __init__(self, master=None):
         super().__init__(master)
         self.title("Password Generator - BlueVault")
-        self.geometry("450x500")
+        self.geometry("600x500")
         
         # Import and create password generator instance with defaults
         from services.password_generator import PasswordGenerator
