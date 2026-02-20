@@ -21,6 +21,7 @@ class MainMenu(tk.Tk):
         
         # Store reference to opened windows
         self.password_generator_window = None
+        self.password_auditor_window = None
         
         self.create_header()
         self.create_main_content()
@@ -154,8 +155,25 @@ class MainMenu(tk.Tk):
             print("Make sure ui_password_generator.py exists in the gui folder")
 
     def open_password_auditor(self):
-        """Open password auditor window (placeholder)."""
-        print("Password Auditor button clicked - Feature coming soon!")
+        """Open password auditor window."""
+        # Check if window already exists and is open
+        if self.password_auditor_window is not None:
+            try:
+                # Try to raise the existing window
+                self.password_auditor_window.lift()
+                self.password_auditor_window.focus_force()
+                return
+            except tk.TclError:
+                # Window was closed, create a new one
+                pass
+
+        # Import and create new password auditor window
+        try:
+            from ui_password_auditor import PasswordAuditorApp
+            self.password_auditor_window = PasswordAuditorApp()
+        except ImportError as e:
+            print(f"Error importing password auditor: {e}")
+            print("Make sure ui_password_auditor.py exists in the gui folder")
 
     def open_settings(self):
         """Open settings window (placeholder)."""
@@ -170,6 +188,12 @@ class MainMenu(tk.Tk):
         if self.password_generator_window is not None:
             try:
                 self.password_generator_window.destroy()
+            except:
+                pass
+        
+        if self.password_auditor_window is not None:
+            try:
+                self.password_auditor_window.destroy()
             except:
                 pass
         
