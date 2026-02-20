@@ -35,7 +35,7 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
     │   └── account.py                # Account module backend responsible for vault management
     ├── user_data/                    # Created automatically
     |   └── accounts.json             # Encrypted master accounts (auto-generated)
-    │   └── vault.json                # Encrypred username/password data for account modules, lock/unlock with associated master user
+    │   └── vault.json                # Encrypted username/password data for account modules, lock/unlock with associated master user
     ├── utils/
     │   └── common_passwords.txt      # Common passwords based on rockyou breach
 </pre>
