@@ -16,6 +16,7 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
 - direct password generator/auditor interactions with account management system to streamline user experience
 - global encryption/decryption for improved security
 - import/export user data "vault" as encrpyted zip file
+- email storage on account creation, support password recovery feature
 - .EXE desktop application implementation
 
 ## File Structure:
