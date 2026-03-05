@@ -14,6 +14,7 @@ class PasswordAuditorApp(tk.Toplevel):
         super().__init__(master)
         self.title("Password Auditor - BlueVault")
         self.geometry("550x600")
+        self.minsize(550, 600)
         self.configure(bg="#f0f0f0")
         
         # Import and create password auditor instance
@@ -30,7 +31,7 @@ class PasswordAuditorApp(tk.Toplevel):
             font=("Arial", 18, "bold"),
             bg="#f0f0f0"
         )
-        title_label.pack(pady=20)
+        title_label.pack(pady=20, fill=tk.X)
 
         # Instructions
         instructions = tk.Label(
@@ -40,7 +41,7 @@ class PasswordAuditorApp(tk.Toplevel):
             bg="#f0f0f0",
             fg="#666666"
         )
-        instructions.pack(pady=5)
+        instructions.pack(pady=5, fill=tk.X)
 
         # Frame for password input
         input_frame = tk.LabelFrame(
@@ -51,11 +52,11 @@ class PasswordAuditorApp(tk.Toplevel):
             padx=20, 
             pady=15
         )
-        input_frame.pack(pady=15, padx=20, fill=tk.BOTH)
+        input_frame.pack(pady=15, padx=20, fill=tk.BOTH, expand=True)
 
         # Password entry with show/hide toggle
         entry_container = tk.Frame(input_frame, bg="#f0f0f0")
-        entry_container.pack(fill=tk.X)
+        entry_container.pack(fill=tk.X, expand=True)
 
         self.password_entry = tk.Entry(
             entry_container, 
@@ -63,7 +64,7 @@ class PasswordAuditorApp(tk.Toplevel):
             width=35,
             show="*"
         )
-        self.password_entry.pack(side=tk.LEFT, padx=(0, 10))
+        self.password_entry.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
         self.password_entry.focus()
 
         # Toggle visibility button
@@ -76,7 +77,7 @@ class PasswordAuditorApp(tk.Toplevel):
             font=("Arial", 9),
             bg="#f0f0f0"
         )
-        self.toggle_button.pack(side=tk.LEFT)
+        self.toggle_button.pack(side=tk.LEFT, fill=tk.Y)
 
         # Bind Enter key to audit
         self.password_entry.bind("<Return>", lambda e: self.audit_password())
@@ -93,7 +94,7 @@ class PasswordAuditorApp(tk.Toplevel):
             pady=10,
             cursor="hand2"
         )
-        self.audit_button.pack(pady=15)
+        self.audit_button.pack(pady=15, fill=tk.X)
 
         # Results frame
         results_frame = tk.LabelFrame(
@@ -108,7 +109,7 @@ class PasswordAuditorApp(tk.Toplevel):
 
         # Score display
         score_container = tk.Frame(results_frame, bg="#f0f0f0")
-        score_container.pack(fill=tk.X, pady=5)
+        score_container.pack(fill=tk.X, pady=5, expand=True)
 
         tk.Label(
             score_container,
@@ -124,7 +125,7 @@ class PasswordAuditorApp(tk.Toplevel):
             bg="#f0f0f0",
             fg="#666666"
         )
-        self.score_label.pack(side=tk.LEFT, padx=10)
+        self.score_label.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
 
         # Entropy display
         entropy_container = tk.Frame(results_frame, bg="#f0f0f0")

@@ -13,7 +13,8 @@ class LoginWindow(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("BlueVault - Login")
-        self.geometry("600x500")
+            self.geometry("600x500")
+            self.minsize(400, 300)
         self.configure(bg="#f0f0f0")
         
         # Import login manager
