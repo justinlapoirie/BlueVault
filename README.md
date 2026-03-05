@@ -10,13 +10,18 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
 - Password Generator with customizable parameters and copy-to-clipboard functionality
 - Password Auditor that checks strength of password and compares it to known breaches
 
-## In Progress:
+## In Development:
 - settings that allow user to customize global variables, password strength requirements, etc
 - Account management system that allows users to store account information to various applications
 - direct password generator/auditor interactions with account management system to streamline user experience
+
+## Future Features:
 - global encryption/decryption for improved security
 - import/export user data "vault" as encrpyted zip file
 - email storage on account creation, support password recovery feature
+- session security, auto-logout on sleep, shutdown, etc
+- account search bar to search through account modules
+- audit log showing recent changes
 - .EXE desktop application implementation
 
 ## File Structure:
