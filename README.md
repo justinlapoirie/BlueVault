@@ -32,6 +32,7 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
     │   ├── ui_login.py               # Master login and account creation GUI
     │   ├── ui_main_menu.py           # Main menu interface
     │   └── ui_password_generator.py  # Password generator window
+    |   └── ui_password_auditor.py    # Password auditor window
     |   └── ui_settings.py            # Controls global variables of BlueVaultMain.py + import/export Vault functionality
     |   └── ui_account.py             # Store username, password, notes, and hyperlink for external applications
     ├── services/
