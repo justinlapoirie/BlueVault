@@ -14,7 +14,6 @@ class PasswordGeneratorApp(tk.Toplevel):
         super().__init__(master)
         self.title("Password Generator - BlueVault")
         self.geometry("600x500")
-        self.minsize(600, 500)
         
         # Import and create password generator instance with defaults
         from services.password_generator import PasswordGenerator
@@ -27,24 +26,24 @@ class PasswordGeneratorApp(tk.Toplevel):
         title_label = tk.Label(
             self, text="Password Generator", font=("Arial", 18, "bold")
         )
-        title_label.pack(pady=20, fill=tk.X)
+        title_label.pack(pady=20)
 
         # Frame for password length
         length_frame = tk.Frame(self)
-        length_frame.pack(pady=10, fill=tk.X)
+        length_frame.pack(pady=10)
 
         tk.Label(length_frame, text="Password Length:", font=("Arial", 11)).pack(
             side=tk.LEFT, padx=5
         )
         self.length_var = tk.StringVar(value="12")
         length_entry = tk.Entry(length_frame, textvariable=self.length_var, width=10)
-        length_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        length_entry.pack(side=tk.LEFT, padx=5)
 
         # Frame for character type options
         options_frame = tk.LabelFrame(
             self, text="Include Character Types", font=("Arial", 11), padx=20, pady=10
         )
-        options_frame.pack(pady=15, padx=20, fill=tk.BOTH, expand=True)
+        options_frame.pack(pady=15, padx=20, fill=tk.BOTH)
 
         # Booleans to keep track of status
         self.uppercase_var = tk.BooleanVar(value=True)
@@ -95,11 +94,11 @@ class PasswordGeneratorApp(tk.Toplevel):
             padx=20,
             pady=10,
         )
-        self.generate_button.pack(pady=15, fill=tk.X)
+        self.generate_button.pack(pady=15)
 
         # Frame for displaying password
         password_frame = tk.Frame(self)
-        password_frame.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
+        password_frame.pack(pady=10, padx=20, fill=tk.BOTH)
 
         self.password_label = tk.Label(
             password_frame,
@@ -109,7 +108,7 @@ class PasswordGeneratorApp(tk.Toplevel):
             wraplength=400,
             justify=tk.CENTER,
         )
-        self.password_label.pack(pady=10, fill=tk.X)
+        self.password_label.pack(pady=10)
 
         # Copy button
         self.copy_button = tk.Button(
@@ -118,7 +117,7 @@ class PasswordGeneratorApp(tk.Toplevel):
             command=self.copy_to_clipboard,
             font=("Arial", 10),
         )
-        self.copy_button.pack(pady=5, fill=tk.X)
+        self.copy_button.pack(pady=5)
 
     def on_button_click(self):
         """Generate password using the class-based generator."""

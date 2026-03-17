@@ -9,21 +9,21 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 class LoginWindow(tk.Tk):
     """Login window with account creation and login functionality."""
-    
+
     def __init__(self):
         super().__init__()
         self.title("BlueVault - Login")
-            self.geometry("600x500")
-            self.minsize(400, 300)
+        self.geometry("500x500")
+        self.resizable(False, False)
         self.configure(bg="#f0f0f0")
-        
+
         # Import login manager
         from services.login import LoginManager
         self.login_manager = LoginManager()
-        
+
         # Store the logged-in username (passed to main menu on success)
         self.logged_in_username = None
-        
+
         # Show initial screen
         self.show_initial_screen()
 
@@ -35,7 +35,7 @@ class LoginWindow(tk.Tk):
     def show_initial_screen(self):
         """Show the initial screen with LOG IN and CREATE ACCOUNT buttons."""
         self.clear_window()
-        
+
         # Title
         tk.Label(
             self,
@@ -44,7 +44,7 @@ class LoginWindow(tk.Tk):
             bg="#f0f0f0",
             fg="#2196F3"
         ).pack(pady=50)
-        
+
         tk.Label(
             self,
             text="Secure Password Manager",
@@ -52,11 +52,11 @@ class LoginWindow(tk.Tk):
             bg="#f0f0f0",
             fg="#666666"
         ).pack(pady=10)
-        
+
         # Buttons frame
         button_frame = tk.Frame(self, bg="#f0f0f0")
         button_frame.pack(pady=50)
-        
+
         tk.Button(
             button_frame,
             text="LOG IN",
@@ -68,7 +68,7 @@ class LoginWindow(tk.Tk):
             height=2,
             cursor="hand2"
         ).pack(pady=10)
-        
+
         tk.Button(
             button_frame,
             text="CREATE ACCOUNT",
@@ -84,7 +84,7 @@ class LoginWindow(tk.Tk):
     def show_login_screen(self):
         """Show the login screen."""
         self.clear_window()
-        
+
         # Title
         tk.Label(
             self,
@@ -92,11 +92,11 @@ class LoginWindow(tk.Tk):
             font=("Arial", 24, "bold"),
             bg="#f0f0f0"
         ).pack(pady=30)
-        
+
         # Form frame
         form_frame = tk.Frame(self, bg="#f0f0f0")
         form_frame.pack(pady=20)
-        
+
         # Username
         tk.Label(
             form_frame,
@@ -104,11 +104,11 @@ class LoginWindow(tk.Tk):
             font=("Arial", 12),
             bg="#f0f0f0"
         ).grid(row=0, column=0, sticky="e", padx=10, pady=10)
-        
+
         self.login_username_entry = tk.Entry(form_frame, font=("Arial", 12), width=25)
         self.login_username_entry.grid(row=0, column=1, padx=10, pady=10)
         self.login_username_entry.focus()
-        
+
         # Password
         tk.Label(
             form_frame,
@@ -116,18 +116,18 @@ class LoginWindow(tk.Tk):
             font=("Arial", 12),
             bg="#f0f0f0"
         ).grid(row=1, column=0, sticky="e", padx=10, pady=10)
-        
+
         self.login_password_entry = tk.Entry(form_frame, font=("Arial", 12), width=25, show="*")
         self.login_password_entry.grid(row=1, column=1, padx=10, pady=10)
-        
+
         # Bind Enter key to login
         self.login_username_entry.bind("<Return>", lambda e: self.login_password_entry.focus())
         self.login_password_entry.bind("<Return>", lambda e: self.handle_login())
-        
+
         # Buttons frame
         button_frame = tk.Frame(self, bg="#f0f0f0")
         button_frame.pack(pady=30)
-        
+
         tk.Button(
             button_frame,
             text="Login",
@@ -139,7 +139,7 @@ class LoginWindow(tk.Tk):
             height=2,
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=10)
-        
+
         tk.Button(
             button_frame,
             text="Back",
@@ -155,7 +155,7 @@ class LoginWindow(tk.Tk):
     def show_create_account_screen(self):
         """Show the create account screen."""
         self.clear_window()
-        
+
         # Title
         tk.Label(
             self,
@@ -163,11 +163,11 @@ class LoginWindow(tk.Tk):
             font=("Arial", 24, "bold"),
             bg="#f0f0f0"
         ).pack(pady=30)
-        
+
         # Form frame
         form_frame = tk.Frame(self, bg="#f0f0f0")
         form_frame.pack(pady=20)
-        
+
         # Username
         tk.Label(
             form_frame,
@@ -175,42 +175,54 @@ class LoginWindow(tk.Tk):
             font=("Arial", 12),
             bg="#f0f0f0"
         ).grid(row=0, column=0, sticky="e", padx=10, pady=10)
-        
+
         self.create_username_entry = tk.Entry(form_frame, font=("Arial", 12), width=25)
         self.create_username_entry.grid(row=0, column=1, padx=10, pady=10)
         self.create_username_entry.focus()
-        
+
+        # Email
+        tk.Label(
+            form_frame,
+            text="Email:",
+            font=("Arial", 12),
+            bg="#f0f0f0"
+        ).grid(row=1, column=0, sticky="e", padx=10, pady=10)
+
+        self.create_email_entry = tk.Entry(form_frame, font=("Arial", 12), width=25)
+        self.create_email_entry.grid(row=1, column=1, padx=10, pady=10)
+
         # Password
         tk.Label(
             form_frame,
             text="Password:",
             font=("Arial", 12),
             bg="#f0f0f0"
-        ).grid(row=1, column=0, sticky="e", padx=10, pady=10)
-        
+        ).grid(row=2, column=0, sticky="e", padx=10, pady=10)
+
         self.create_password_entry = tk.Entry(form_frame, font=("Arial", 12), width=25, show="*")
-        self.create_password_entry.grid(row=1, column=1, padx=10, pady=10)
-        
+        self.create_password_entry.grid(row=2, column=1, padx=10, pady=10)
+
         # Confirm Password
         tk.Label(
             form_frame,
             text="Confirm Password:",
             font=("Arial", 12),
             bg="#f0f0f0"
-        ).grid(row=2, column=0, sticky="e", padx=10, pady=10)
-        
+        ).grid(row=3, column=0, sticky="e", padx=10, pady=10)
+
         self.create_confirm_password_entry = tk.Entry(form_frame, font=("Arial", 12), width=25, show="*")
-        self.create_confirm_password_entry.grid(row=2, column=1, padx=10, pady=10)
-        
+        self.create_confirm_password_entry.grid(row=3, column=1, padx=10, pady=10)
+
         # Bind Enter key navigation
-        self.create_username_entry.bind("<Return>", lambda e: self.create_password_entry.focus())
+        self.create_username_entry.bind("<Return>", lambda e: self.create_email_entry.focus())
+        self.create_email_entry.bind("<Return>", lambda e: self.create_password_entry.focus())
         self.create_password_entry.bind("<Return>", lambda e: self.create_confirm_password_entry.focus())
         self.create_confirm_password_entry.bind("<Return>", lambda e: self.handle_create_account())
-        
+
         # Buttons frame
         button_frame = tk.Frame(self, bg="#f0f0f0")
         button_frame.pack(pady=30)
-        
+
         tk.Button(
             button_frame,
             text="Create Account",
@@ -222,7 +234,7 @@ class LoginWindow(tk.Tk):
             height=2,
             cursor="hand2"
         ).pack(side=tk.LEFT, padx=10)
-        
+
         tk.Button(
             button_frame,
             text="Back",
@@ -239,12 +251,13 @@ class LoginWindow(tk.Tk):
         """Handle login button click."""
         username = self.login_username_entry.get().strip()
         password = self.login_password_entry.get()
-        
+
         # Verify credentials
         success, message = self.login_manager.verify_login(username, password)
-        
+
         if success:
             self.logged_in_username = username
+            self.master_password = password  # Store for encryption key
             messagebox.showinfo("Success", f"Welcome back, {username}!")
             self.open_main_menu()
         else:
@@ -255,9 +268,10 @@ class LoginWindow(tk.Tk):
     def handle_create_account(self):
         """Handle create account button click."""
         username = self.create_username_entry.get().strip()
+        email = self.create_email_entry.get().strip()
         password = self.create_password_entry.get()
         confirm_password = self.create_confirm_password_entry.get()
-        
+
         # Check if passwords match
         if password != confirm_password:
             messagebox.showerror("Error", "Passwords do not match.")
@@ -265,10 +279,10 @@ class LoginWindow(tk.Tk):
             self.create_confirm_password_entry.delete(0, tk.END)
             self.create_password_entry.focus()
             return
-        
+
         # Attempt to create account
-        success, message = self.login_manager.create_account(username, password)
-        
+        success, message = self.login_manager.create_account(username, password, email)
+
         if success:
             messagebox.showinfo("Success", "Account created. Please log in.")
             self.show_initial_screen()
@@ -279,7 +293,7 @@ class LoginWindow(tk.Tk):
         """Close login window and open main menu."""
         # Import here to avoid circular import
         from ui_main_menu import MainMenu
-        
+
         # Get auto-logout time from config if available
         try:
             sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -289,17 +303,18 @@ class LoginWindow(tk.Tk):
         except ImportError:
             # Fallback if BlueVaultMain not found
             auto_logout_time = 300  # 5 minutes default
-        
+
         # Hide login window
         self.withdraw()
-        
-        # Open main menu with username and auto-logout time
+
+        # Open main menu with username, auto-logout time, and master password
         main_menu = MainMenu(
-            username=self.logged_in_username, 
-            login_window=self, 
-            auto_logout_time=auto_logout_time
+            username=self.logged_in_username,
+            login_window=self,
+            auto_logout_time=auto_logout_time,
+            master_password=self.master_password
         )
-        
+
         # If main menu is closed, show login again
         # (This is handled in main menu's logout function)
 
