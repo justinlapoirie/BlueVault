@@ -6,19 +6,18 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
 ## Current Features:
 - Login/Logout feature with secure account info storage and proper error handling
 - main menu with clean GUI
+- Account management system that allows users to store account information to various applications
 - Auto time-out feature(default 5 minutes, eventually will be customizable with settings button)
 - Password Generator with customizable parameters and copy-to-clipboard functionality
 - Password Auditor that checks strength of password and compares it to known breaches
 
 ## In Development:
 - settings that allow user to customize global variables, password strength requirements, etc
-- Account management system that allows users to store account information to various applications
-- direct password generator/auditor interactions with account management system to streamline user experience
-
+- Email incorporation for 2FA, account recovery, verification, etc
+- import/export user data "vault" as encrpyted zip file
+  
 ## Future Features:
 - global encryption/decryption for improved security
-- import/export user data "vault" as encrpyted zip file
-- email storage on account creation, support password recovery feature
 - session security, auto-logout on sleep, shutdown, etc
 - account search bar to search through account modules
 - audit log showing recent changes
@@ -42,7 +41,7 @@ CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper F
     │   └── account.py                # Account module backend responsible for vault management
     ├── user_data/                    # Created automatically
     |   └── accounts.json             # Encrypted master accounts (auto-generated)
-    │   └── vault.json                # Encrypted username/password data for account modules, lock/unlock with associated master user
+    │   └── vault_(user).json         # Encrypted username/password data for account modules, lock/unlock with associated master user
     ├── utils/
     │   └── common_passwords.txt      # Common passwords based on rockyou breach
 </pre>
