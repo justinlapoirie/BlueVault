@@ -1,7 +1,7 @@
 # BlueVault
 Locally Encrypted Password Generation and Management Desktop Application
 
-CS370 Collaborative Project by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper Frank
+CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper Frank
 
 ## Current Features:
 - Login/Logout feature with secure account info storage and proper error handling
