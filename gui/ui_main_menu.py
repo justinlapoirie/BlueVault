@@ -10,7 +10,7 @@ class MainMenu(tk.Tk):
     def __init__(self, username="User", login_window=None, auto_logout_time=300, master_password=None):
         super().__init__()
         self.title("BlueVault")
-        self.geometry("1000x800")
+        self.geometry("1100x700")
         self.configure(bg="#f0f0f0")
 
         # Store user info and login window reference
