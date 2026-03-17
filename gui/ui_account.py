@@ -34,7 +34,7 @@ class AccountWindow(tk.Toplevel):
         else:
             self.title("Edit Account - BlueVault")
 
-        self.geometry("500x550")
+        self.geometry("500x600")
         self.resizable(False, False)
         self.configure(bg="#f0f0f0")
 
