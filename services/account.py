@@ -68,6 +68,12 @@ class AccountManager:
             # Decrypt the data
             decrypted_data = self.cipher.decrypt(encrypted_data.encode())
             accounts = json.loads(decrypted_data.decode())
+
+            # Backfill last_copied for older vaults that were saved before
+            # the field existed.
+            for acc in accounts:
+                acc.setdefault("last_copied", None)
+
             return accounts
         except Exception as e:
             print(f"Error loading vault: {e}")
@@ -121,7 +127,8 @@ class AccountManager:
             "website_url": website_url,
             "created_date": now,
             "last_password_change": now,
-            "last_modified": now
+            "last_modified": now,
+            "last_copied": None,  # Tracks when the password was last copied
         }
 
         accounts.append(account)
@@ -146,6 +153,12 @@ class AccountManager:
 
         for account in accounts:
             if account["id"] == account_id:
+                # Track whether the password actually changed
+                password_changed = (
+                    "password" in kwargs
+                    and kwargs["password"] != account.get("password")
+                )
+
                 # Update fields
                 for key, value in kwargs.items():
                     if key in account:
@@ -154,8 +167,8 @@ class AccountManager:
                 # Update last_modified timestamp
                 account["last_modified"] = datetime.now().isoformat()
 
-                # Update last_password_change if password was changed
-                if "password" in kwargs:
+                # Update last_password_change only if password actually changed
+                if password_changed:
                     account["last_password_change"] = datetime.now().isoformat()
 
                 if self._save_vault(accounts):
@@ -238,15 +251,33 @@ class AccountManager:
 
         return delta.days
 
+    def update_last_copied(self, account_id):
+        """
+        Update the last_copied timestamp for an account, used by the
+        "Last Copied" sort option.
+
+        Args:
+            account_id: ID of the account
+
+        Returns:
+            bool: True if updated successfully, False otherwise
+        """
+        accounts = self._load_vault()
+
+        for account in accounts:
+            if account["id"] == account_id:
+                account["last_copied"] = datetime.now().isoformat()
+                return self._save_vault(accounts)
+
+        return False
+
 
 # Quick test
 if __name__ == "__main__":
     print("--- Account Manager Test ---")
 
-    # Create manager for test user
     manager = AccountManager("testuser", "testpassword123")
 
-    # Create an account
     account = manager.create_account(
         account_name="Test Account",
         username="test@example.com",
@@ -256,19 +287,13 @@ if __name__ == "__main__":
     )
     print(f"Created account: {account['account_name']}")
 
-    # Get all accounts
     all_accounts = manager.get_all_accounts()
     print(f"Total accounts: {len(all_accounts)}")
 
-    # Update account
     if account:
-        updated = manager.update_account(
-            account["id"],
-            notes="Updated notes"
-        )
+        updated = manager.update_account(account["id"], notes="Updated notes")
         print(f"Updated account: {updated['account_name']}")
 
-    # Get password age
     if account:
         age = manager.get_password_age_days(account["id"])
         print(f"Password age: {age} days")

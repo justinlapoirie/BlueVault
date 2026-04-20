@@ -132,6 +132,41 @@ class LoginManager:
         else:
             return False, "Invalid username or password."
 
+    def change_password(self, username, new_password):
+        """
+        Update the stored master password hash (and generate a fresh salt)
+        for an existing user.
+
+        NOTE: This method does NOT re-verify the old password. Callers
+        (e.g. the settings module) must verify the old password first.
+
+        Args:
+            username: User to update.
+            new_password: New master password (plain text).
+
+        Returns:
+            bool: True on success, False if the user does not exist or
+            saving fails.
+        """
+        if not username or not new_password:
+            return False
+
+        data = self._load_data()
+        if username not in data:
+            return False
+
+        new_hash, new_salt = self._hash_password(new_password)
+        data[username]["password_hash"] = new_hash
+        data[username]["salt"] = new_salt
+
+        try:
+            self._save_data(data)
+        except Exception as e:
+            print(f"[login] change_password save failed: {e}")
+            return False
+
+        return True
+
     def user_exists(self, username):
         """Check if a username exists."""
         data = self._load_data()
