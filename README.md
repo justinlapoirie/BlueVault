@@ -11,7 +11,7 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
 - Password Generator with customizable parameters and copy-to-clipboard functionality
 - Password Auditor that checks strength of password and compares it to known breaches
 - settings menu that allows user to customize global variables, password strength requirements, etc
-- - import/export user data "vault" as encrpyted zip file
+- import/export user data "vault" as encrpyted zip file
 
 ## In Development:
 - Email incorporation for 2FA, account recovery, verification, etc
