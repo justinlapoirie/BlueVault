@@ -16,6 +16,15 @@ class MainMenu(tk.Tk):
         # Store user info and login window reference
         self.username = username
         self.login_window = login_window
+        self.master_password = master_password
+
+        # Initialize settings manager and override auto-logout from settings
+        from services.settings import SettingsManager
+        self.settings_manager = SettingsManager(username)
+        settings_logout = self.settings_manager.get_auto_logout_time()
+        if settings_logout and settings_logout > 0:
+            auto_logout_time = settings_logout
+
         self.auto_logout_time = auto_logout_time  # in seconds
         self.time_remaining = auto_logout_time
 
@@ -23,9 +32,14 @@ class MainMenu(tk.Tk):
         from services.account import AccountManager
         self.account_manager = AccountManager(username, master_password)
 
+        # Track clipboard auto-clear scheduler id and fingerprint
+        self._clipboard_clear_after_id = None
+        self._clipboard_expected_text = None
+
         # Store reference to opened windows
         self.password_generator_window = None
         self.password_auditor_window = None
+        self.settings_window = None
 
         self.create_header()
         self.create_main_content()
@@ -33,6 +47,10 @@ class MainMenu(tk.Tk):
         # Bind window resize to refresh grid layout
         self.bind("<Configure>", self._on_window_resize)
         self._resize_timer = None
+
+        # Reset auto-logout timer on any user input
+        self.bind_all("<Key>", self._reset_timer)
+        self.bind_all("<Button>", self._reset_timer)
 
         # Start the auto-logout timer
         self.start_timer()
@@ -153,14 +171,32 @@ class MainMenu(tk.Tk):
         """Handle mouse wheel scrolling."""
         self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
+    # ------------------------------------------------------------------
+    # Sorting (driven by settings)
+    # ------------------------------------------------------------------
+    def _sort_accounts(self, accounts):
+        """Sort accounts according to the user's settings."""
+        sort_by = self.settings_manager.get_account_sort_by()
+
+        if sort_by == "alphabetical":
+            return sorted(accounts, key=lambda x: x.get("account_name", "").lower())
+        if sort_by == "date_created":
+            return sorted(accounts, key=lambda x: x.get("created_date", ""), reverse=True)
+        if sort_by == "date_modified":
+            return sorted(accounts, key=lambda x: x.get("last_modified", ""), reverse=True)
+        if sort_by == "last_copied":
+            return sorted(accounts, key=lambda x: x.get("last_copied") or "", reverse=True)
+        return accounts
+
     def refresh_accounts(self):
         """Load accounts and refresh the display."""
         # Clear existing account cards
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
 
-        # Load accounts from manager
+        # Load accounts from manager, then sort
         accounts = self.account_manager.get_all_accounts()
+        accounts = self._sort_accounts(accounts)
 
         if not accounts:
             # Show empty state message
@@ -173,23 +209,19 @@ class MainMenu(tk.Tk):
             ).grid(row=0, column=0, pady=100, padx=100)
         else:
             # Calculate number of columns based on window width
-            # Each card needs approximately 400 pixels width
             window_width = self.winfo_width()
-            if window_width < 100:  # Window not yet sized
-                window_width = 1200  # Use default
+            if window_width < 100:
+                window_width = 1200
 
-            # Account for scrollbar and padding
             available_width = window_width - 60
             card_width = 400
             num_columns = max(1, available_width // card_width)
 
-            # Display accounts in grid
             for index, account in enumerate(accounts):
                 row = index // num_columns
                 col = index % num_columns
                 self.create_account_card(account, row, col)
 
-            # Configure grid columns to expand evenly
             for col in range(num_columns):
                 self.scrollable_frame.grid_columnconfigure(col, weight=1, uniform="column")
 
@@ -197,7 +229,7 @@ class MainMenu(tk.Tk):
         """Create a card widget for an account entry."""
         from datetime import datetime
 
-        # Card frame - use grid instead of pack
+        # Card frame
         card = tk.Frame(
             self.scrollable_frame,
             bg="#f9f9f9",
@@ -210,7 +242,6 @@ class MainMenu(tk.Tk):
         top_frame = tk.Frame(card, bg="#f9f9f9")
         top_frame.pack(fill=tk.X, padx=15, pady=(10, 5))
 
-        # Account name
         tk.Label(
             top_frame,
             text=account["account_name"],
@@ -223,7 +254,6 @@ class MainMenu(tk.Tk):
         action_frame = tk.Frame(top_frame, bg="#f9f9f9")
         action_frame.pack(side=tk.RIGHT)
 
-        # Edit button (pencil)
         edit_btn = tk.Button(
             action_frame,
             text="✏",
@@ -237,7 +267,6 @@ class MainMenu(tk.Tk):
         )
         edit_btn.pack(side=tk.LEFT, padx=5)
 
-        # Delete button (trash)
         delete_btn = tk.Button(
             action_frame,
             text="🗑",
@@ -285,7 +314,9 @@ class MainMenu(tk.Tk):
         tk.Button(
             username_frame,
             text="📋",
-            command=lambda: self.copy_to_clipboard(account["username"], "Username"),
+            command=lambda: self.copy_to_clipboard(
+                account["username"], "Username", account_id=account["id"]
+            ),
             font=("Arial", 10),
             bg="#f9f9f9",
             relief=tk.FLAT,
@@ -317,8 +348,7 @@ class MainMenu(tk.Tk):
         )
         password_display.pack(side=tk.LEFT, padx=5)
 
-        # Toggle password visibility
-        show_password = [False]  # Use list to maintain state in closure
+        show_password = [False]
 
         def toggle_password_visibility():
             if show_password[0]:
@@ -329,10 +359,8 @@ class MainMenu(tk.Tk):
                 password_var.set(account["password"])
                 show_btn.config(text="👁‍🗨")
                 show_password[0] = True
-            # Force display update
             password_display.update_idletasks()
 
-        # Show/hide password button (eye)
         show_btn = tk.Button(
             password_frame,
             text="👁",
@@ -344,11 +372,13 @@ class MainMenu(tk.Tk):
         )
         show_btn.pack(side=tk.LEFT)
 
-        # Copy password button
+        # Copy password button - passes account_id so we can track last_copied
         tk.Button(
             password_frame,
             text="📋",
-            command=lambda: self.copy_to_clipboard(account["password"], "Password"),
+            command=lambda: self.copy_to_clipboard(
+                account["password"], "Password", account_id=account["id"]
+            ),
             font=("Arial", 10),
             bg="#f9f9f9",
             relief=tk.FLAT,
@@ -407,11 +437,10 @@ class MainMenu(tk.Tk):
             notes_text.insert(1.0, account["notes"])
             notes_text.config(state="disabled")
 
-        # Bottom info row
+        # Bottom info row - password age with renewal color coding
         info_frame = tk.Frame(card, bg="#f9f9f9")
         info_frame.pack(fill=tk.X, padx=15, pady=(5, 10))
 
-        # Calculate password age
         last_change = datetime.fromisoformat(account["last_password_change"])
         now = datetime.now()
         delta = now - last_change
@@ -433,20 +462,78 @@ class MainMenu(tk.Tk):
             years = delta.days // 365
             time_ago = f"{years} year{'s' if years > 1 else ''} ago"
 
+        # Determine color based on password renewal setting
+        renewal_days = self.settings_manager.get_password_renewal_days()
+        text_color = "#666666"  # default gray
+
+        if renewal_days > 0:
+            age_days = delta.days
+            t1 = renewal_days / 3.0
+            t2 = (renewal_days / 3.0) * 2.0
+            if age_days > renewal_days:
+                text_color = "#F44336"   # red - overdue
+            elif age_days > t2:
+                text_color = "#FB8C00"   # orange - last third
+            elif age_days > t1:
+                text_color = "#F9A825"   # yellow - middle third
+            # first third -> stays gray
+
         tk.Label(
             info_frame,
             text=f"Last password change: {last_change.strftime('%m/%d/%Y')} - {time_ago}",
             font=("Arial", 9, "italic"),
             bg="#f9f9f9",
-            fg="#666666"
+            fg=text_color
         ).pack(side=tk.LEFT)
 
-    def copy_to_clipboard(self, text, field_name):
-        """Copy text to clipboard."""
+    # ------------------------------------------------------------------
+    # Clipboard (with auto-clear + last_copied tracking)
+    # ------------------------------------------------------------------
+    def copy_to_clipboard(self, text, field_name, account_id=None):
+        """Copy text to clipboard, track last_copied, schedule auto-clear."""
         self.clipboard_clear()
         self.clipboard_append(text)
-        # Optional: Show brief confirmation
+        self.update()  # Force clipboard to sync
         print(f"{field_name} copied to clipboard")
+
+        # Track last_copied for sorting (for both username and password copies).
+        if account_id is not None:
+            try:
+                self.account_manager.update_last_copied(account_id)
+                # If currently sorting by last_copied, refresh order
+                if self.settings_manager.get_account_sort_by() == "last_copied":
+                    self.refresh_accounts()
+            except Exception as e:
+                print(f"[main_menu] update_last_copied failed: {e}")
+
+        # Cancel any previously scheduled clear
+        if self._clipboard_clear_after_id is not None:
+            try:
+                self.after_cancel(self._clipboard_clear_after_id)
+            except Exception:
+                pass
+            self._clipboard_clear_after_id = None
+
+        # Schedule auto-clear
+        clear_seconds = self.settings_manager.get_clipboard_autoclear_seconds()
+        if clear_seconds and clear_seconds > 0:
+            self._clipboard_expected_text = text
+            self._clipboard_clear_after_id = self.after(
+                clear_seconds * 1000, self._clipboard_auto_clear
+            )
+
+    def _clipboard_auto_clear(self):
+        """Clear clipboard if the text we copied is still on it."""
+        self._clipboard_clear_after_id = None
+        try:
+            current = self.clipboard_get()
+        except tk.TclError:
+            current = None
+        if current == self._clipboard_expected_text:
+            self.clipboard_clear()
+            self.update()
+            print("Clipboard auto-cleared for security")
+        self._clipboard_expected_text = None
 
     def open_website(self, url):
         """Open website URL in default browser."""
@@ -465,19 +552,18 @@ class MainMenu(tk.Tk):
                 self.account_manager,
                 mode="edit",
                 account_data=account,
-                callback=self.refresh_accounts
+                callback=self.refresh_accounts,
+                settings_manager=self.settings_manager,
             )
 
     def delete_account(self, account_id):
         """Delete an account with confirmation."""
         from tkinter import messagebox
 
-        # Get account name for confirmation
         account = self.account_manager.get_account(account_id)
         if not account:
             return
 
-        # Show confirmation dialog with custom title
         result = messagebox.askyesno(
             "DELETE",
             f"Are you sure you want to delete '{account['account_name']}'?\n\n"
@@ -503,23 +589,20 @@ class MainMenu(tk.Tk):
             self,
             self.account_manager,
             mode="create",
-            callback=self.refresh_accounts
+            callback=self.refresh_accounts,
+            settings_manager=self.settings_manager,
         )
 
     def open_password_generator(self):
         """Open the password generator window."""
-        # Check if window already exists and is open
         if self.password_generator_window is not None:
             try:
-                # Try to raise the existing window
                 self.password_generator_window.lift()
                 self.password_generator_window.focus_force()
                 return
             except tk.TclError:
-                # Window was closed, create a new one
                 pass
 
-        # Import and create new password generator window
         try:
             from ui_password_generator import PasswordGeneratorApp
             self.password_generator_window = PasswordGeneratorApp()
@@ -529,18 +612,14 @@ class MainMenu(tk.Tk):
 
     def open_password_auditor(self):
         """Open password auditor window."""
-        # Check if window already exists and is open
         if self.password_auditor_window is not None:
             try:
-                # Try to raise the existing window
                 self.password_auditor_window.lift()
                 self.password_auditor_window.focus_force()
                 return
             except tk.TclError:
-                # Window was closed, create a new one
                 pass
 
-        # Import and create new password auditor window
         try:
             from ui_password_auditor import PasswordAuditorApp
             self.password_auditor_window = PasswordAuditorApp()
@@ -549,26 +628,61 @@ class MainMenu(tk.Tk):
             print("Make sure ui_password_auditor.py exists in the gui folder")
 
     def open_settings(self):
-        """Open settings window (placeholder)."""
-        print("Settings button clicked - Feature coming soon!")
+        """Open the settings window."""
+        # If already open, just raise it
+        if self.settings_window is not None:
+            try:
+                self.settings_window.lift()
+                self.settings_window.focus_force()
+                return
+            except tk.TclError:
+                self.settings_window = None
+
+        # We need the LoginManager to change master password
+        from services.login import LoginManager
+        login_manager = LoginManager()
+
+        from ui_settings import SettingsWindow
+        self.settings_window = SettingsWindow(
+            self,
+            username=self.username,
+            settings_manager=self.settings_manager,
+            account_manager=self.account_manager,
+            login_manager=login_manager,
+            master_password=self.master_password,
+            callback=self.refresh_accounts,
+        )
+
+        # Clear reference when window closes
+        def _on_close():
+            try:
+                self.settings_window.destroy()
+            finally:
+                self.settings_window = None
+
+        self.settings_window.protocol("WM_DELETE_WINDOW", _on_close)
 
     def logout(self):
         """Handle logout."""
         if hasattr(self, 'timer_id'):
-            self.after_cancel(self.timer_id)  # Stop the timer
+            self.after_cancel(self.timer_id)
+
+        # Cancel any pending clipboard auto-clear
+        if self._clipboard_clear_after_id is not None:
+            try:
+                self.after_cancel(self._clipboard_clear_after_id)
+            except Exception:
+                pass
+            self._clipboard_clear_after_id = None
 
         # Close any open child windows
-        if self.password_generator_window is not None:
-            try:
-                self.password_generator_window.destroy()
-            except:
-                pass
-
-        if self.password_auditor_window is not None:
-            try:
-                self.password_auditor_window.destroy()
-            except:
-                pass
+        for attr in ("password_generator_window", "password_auditor_window", "settings_window"):
+            w = getattr(self, attr, None)
+            if w is not None:
+                try:
+                    w.destroy()
+                except Exception:
+                    pass
 
         # Destroy main menu
         self.destroy()
@@ -578,45 +692,49 @@ class MainMenu(tk.Tk):
             self.login_window.deiconify()
             self.login_window.show_initial_screen()
 
+    # ------------------------------------------------------------------
+    # Auto-logout timer
+    # ------------------------------------------------------------------
     def start_timer(self):
         """Start the auto-logout countdown timer."""
         self.update_timer()
+
+    def _reset_timer(self, event=None):
+        """Reset the countdown on any user input."""
+        self.time_remaining = self.auto_logout_time
+        if hasattr(self, "timer_label"):
+            try:
+                self.timer_label.config(text=self._format_time(self.time_remaining))
+            except tk.TclError:
+                pass
 
     def update_timer(self):
         """Update the timer display and handle auto-logout."""
         if self.time_remaining > 0:
             self.time_remaining -= 1
             self.timer_label.config(text=self._format_time(self.time_remaining))
-            self.timer_id = self.after(1000, self.update_timer)  # Update every second
+            self.timer_id = self.after(1000, self.update_timer)
         else:
             # Time's up - close app FIRST, then show message
             if hasattr(self, 'timer_id'):
                 self.after_cancel(self.timer_id)
 
             # Close any open child windows
-            if self.password_generator_window is not None:
-                try:
-                    self.password_generator_window.destroy()
-                except:
-                    pass
+            for attr in ("password_generator_window", "password_auditor_window", "settings_window"):
+                w = getattr(self, attr, None)
+                if w is not None:
+                    try:
+                        w.destroy()
+                    except Exception:
+                        pass
 
-            if self.password_auditor_window is not None:
-                try:
-                    self.password_auditor_window.destroy()
-                except:
-                    pass
-
-            # Withdraw (hide) main menu before showing message
             self.withdraw()
 
-            # Show timeout message
             from tkinter import messagebox
             messagebox.showinfo("Session Expired", "Your session has expired. Please log in again.")
 
-            # Destroy main menu
             self.destroy()
 
-            # Show login window again if it exists
             if self.login_window is not None:
                 self.login_window.deiconify()
                 self.login_window.show_initial_screen()
@@ -629,13 +747,9 @@ class MainMenu(tk.Tk):
 
     def _on_window_resize(self, event):
         """Handle window resize events to refresh grid layout."""
-        # Only respond to main window resize, not child widgets
         if event.widget == self:
-            # Cancel previous timer if exists
             if self._resize_timer:
                 self.after_cancel(self._resize_timer)
-
-            # Set a new timer to refresh after resize completes (debounce)
             self._resize_timer = self.after(200, self._refresh_on_resize)
 
     def _refresh_on_resize(self):

@@ -10,7 +10,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 class AccountWindow(tk.Toplevel):
     """Window for creating or editing password vault accounts."""
 
-    def __init__(self, master, account_manager, mode="create", account_data=None, callback=None):
+    def __init__(self, master, account_manager, mode="create",
+                 account_data=None, callback=None, settings_manager=None):
         """
         Initialize the account window.
 
@@ -20,6 +21,8 @@ class AccountWindow(tk.Toplevel):
             mode: "create" or "edit"
             account_data: Existing account data (for edit mode)
             callback: Function to call after save
+            settings_manager: Optional SettingsManager for password strength
+                              enforcement.
         """
         super().__init__(master)
 
@@ -27,6 +30,7 @@ class AccountWindow(tk.Toplevel):
         self.mode = mode
         self.account_data = account_data
         self.callback = callback
+        self.settings_manager = settings_manager
 
         # Window configuration
         if mode == "create":
@@ -34,7 +38,7 @@ class AccountWindow(tk.Toplevel):
         else:
             self.title("Edit Account - BlueVault")
 
-        self.geometry("500x600")
+        self.geometry("500x620")
         self.resizable(False, False)
         self.configure(bg="#f0f0f0")
 
@@ -99,11 +103,22 @@ class AccountWindow(tk.Toplevel):
             bg="#f0f0f0"
         ).pack(side=tk.LEFT)
 
+        # Strength-requirement hint next to the label
+        if self.settings_manager is not None:
+            req = self.settings_manager.get_password_strength_requirement()
+            if req and req.lower() != "off":
+                tk.Label(
+                    password_label_frame,
+                    text=f"  (min: {req.capitalize()})",
+                    font=("Arial", 9, "italic"),
+                    bg="#f0f0f0",
+                    fg="#666666",
+                ).pack(side=tk.LEFT)
+
         # Password entry with show/hide and generate button
         password_container = tk.Frame(form_frame, bg="#f0f0f0")
         password_container.grid(row=5, column=0, pady=(0, 15))
 
-        # Create Entry first
         self.password_entry = tk.Entry(
             password_container,
             font=("Arial", 11),
@@ -112,7 +127,6 @@ class AccountWindow(tk.Toplevel):
         )
         self.password_entry.pack(side=tk.LEFT, padx=(0, 5))
 
-        # Generate password button
         tk.Button(
             password_container,
             text="🔑 Generate",
@@ -125,7 +139,6 @@ class AccountWindow(tk.Toplevel):
             padx=5
         ).pack(side=tk.LEFT, padx=(0, 5))
 
-        # Show/hide checkbox - initialize BooleanVar and create checkbutton
         self.show_password_var = tk.BooleanVar(value=False)
         self.show_password_checkbox = tk.Checkbutton(
             password_container,
@@ -210,7 +223,6 @@ class AccountWindow(tk.Toplevel):
             self.password_entry.config(show="")
         else:
             self.password_entry.config(show="*")
-        # Force widget update to ensure visibility change takes effect
         self.password_entry.update_idletasks()
 
     def generate_password(self):
@@ -218,7 +230,6 @@ class AccountWindow(tk.Toplevel):
         try:
             from services.password_generator import PasswordGenerator
 
-            # Create generator with default parameters
             generator = PasswordGenerator(
                 length=12,
                 include_uppercase=True,
@@ -227,14 +238,11 @@ class AccountWindow(tk.Toplevel):
                 include_symbols=True
             )
 
-            # Generate password
             password = generator.generate_password()
 
-            # Clear current password and insert generated one
             self.password_entry.delete(0, tk.END)
             self.password_entry.insert(0, password)
 
-            # Briefly show the password so user can see it was generated
             self.show_password_var.set(True)
             self.toggle_password()
 
@@ -274,6 +282,27 @@ class AccountWindow(tk.Toplevel):
             self.password_entry.focus()
             return
 
+        # Enforce password strength requirement (if settings are available).
+        # Only enforce when the password has actually been set/changed in edit
+        # mode, so that editing an old account that doesn't meet the new
+        # requirement is still allowed (as long as the password isn't touched).
+        should_check = True
+        if self.mode == "edit" and self.account_data is not None:
+            if password == self.account_data.get("password"):
+                should_check = False
+
+        if should_check and self.settings_manager is not None:
+            try:
+                from utils.entropy_calculator import meets_strength_requirement
+                req = self.settings_manager.get_password_strength_requirement()
+                ok, msg = meets_strength_requirement(password, req)
+                if not ok:
+                    messagebox.showerror("Weak Password", msg, parent=self)
+                    self.password_entry.focus()
+                    return
+            except Exception as e:
+                print(f"[ui_account] strength check failed: {e}")
+
         # Save account
         try:
             if self.mode == "create":
@@ -307,11 +336,9 @@ class AccountWindow(tk.Toplevel):
                     messagebox.showerror("Error", "Failed to update account.")
                     return
 
-            # Call callback to refresh main menu
             if self.callback:
                 self.callback()
 
-            # Close window
             self.destroy()
 
         except Exception as e:
@@ -323,7 +350,6 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.withdraw()
 
-    # Import account manager
     sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
     from services.account import AccountManager
 
