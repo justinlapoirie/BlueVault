@@ -10,18 +10,19 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
 - Auto time-out feature(default 5 minutes, eventually will be customizable with settings button)
 - Password Generator with customizable parameters and copy-to-clipboard functionality
 - Password Auditor that checks strength of password and compares it to known breaches
+- settings menu that allows user to customize global variables, password strength requirements, etc
+- - import/export user data "vault" as encrpyted zip file
 
 ## In Development:
-- settings that allow user to customize global variables, password strength requirements, etc
 - Email incorporation for 2FA, account recovery, verification, etc
-- import/export user data "vault" as encrpyted zip file
-  
-## Future Features:
-- global encryption/decryption for improved security
-- session security, auto-logout on sleep, shutdown, etc
+- UI overhaul
 - account search bar to search through account modules
 - audit log showing recent changes
 - .EXE desktop application implementation
+
+## Future Features:
+- global encryption/decryption for improved security
+- session security, auto-logout on sleep, shutdown, etc
 
 ## File Structure:
 <pre>
@@ -44,6 +45,7 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
     │   └── vault_(user).json         # Encrypted username/password data for account modules, lock/unlock with associated master user
     ├── utils/
     │   └── common_passwords.txt      # Common passwords based on rockyou breach
+    │   └── entropy_calculator.py     # Entropy calculation used in account creationn and password auditor
 </pre>
 
 
