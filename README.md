@@ -7,22 +7,17 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
 - Login/Logout feature with secure account info storage and proper error handling
 - main menu with clean GUI
 - Account management system that allows users to store account information to various applications
-- Auto time-out feature(default 5 minutes, eventually will be customizable with settings button)
+- Settings manager that allows users to customize security features, password requirements and reminders, etc
 - Password Generator with customizable parameters and copy-to-clipboard functionality
 - Password Auditor that checks strength of password and compares it to known breaches
-- settings menu that allows user to customize global variables, password strength requirements, etc
 - import/export user data "vault" as encrpyted zip file
 
-## In Development:
-- Email incorporation for 2FA, account recovery, verification, etc
+## In Development (By Priority):
 - UI overhaul
-- account search bar to search through account modules
-- audit log showing recent changes
 - .EXE desktop application implementation
-
-## Future Features:
-- global encryption/decryption for improved security
-- session security, auto-logout on sleep, shutdown, etc
+- Session security, auto-logout on sleep, shutdown, etc
+- Audit log showing recent changes
+- Email incorporation for 2FA, account recovery, verification, etc
 
 ## File Structure:
 <pre>
