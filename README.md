@@ -38,6 +38,7 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
     ├── user_data/                    # Created automatically
     |   └── accounts.json             # Encrypted master accounts (auto-generated)
     │   └── vault_(user).json         # Encrypted username/password data for account modules, lock/unlock with associated master user
+    │   └── settings_(user).json      # stores settings information for user. Basic formatting - no need for encryption
     ├── utils/
     │   └── common_passwords.txt      # Common passwords based on rockyou breach
     │   └── entropy_calculator.py     # Entropy calculation used in account creationn and password auditor
