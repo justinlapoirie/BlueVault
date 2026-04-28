@@ -1,5 +1,5 @@
 # BlueVault
-Locally Encrypted Password Generation and Management Desktop Application
+Locally Encrypted Password Management Tool - Keep track of all your accounts, maintain strong passwords, and keep credential security in your hands.
 
 CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Esparza, Cooper Frank
 
