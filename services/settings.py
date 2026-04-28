@@ -103,6 +103,10 @@ class SettingsManager:
         if not os.path.exists(self.settings_file):
             merged = dict(DEFAULT_SETTINGS)
             self._write_settings(merged)
+            print(
+                f"[settings] No settings file for {self.username!r}; "
+                f"created defaults at {self.settings_file}"
+            )
             return merged
 
         try:
@@ -115,12 +119,14 @@ class SettingsManager:
         # Fill in any missing keys with defaults
         merged = dict(DEFAULT_SETTINGS)
         merged.update({k: v for k, v in data.items() if k in DEFAULT_SETTINGS})
+        print(f"[settings] Loaded for {self.username!r}: {merged}")
         return merged
 
     def _write_settings(self, data: dict) -> bool:
         try:
             with open(self.settings_file, "w") as f:
                 json.dump(data, f, indent=4)
+            print(f"[settings] Wrote {self.settings_file}: {data}")
             return True
         except OSError as e:
             print(f"[settings] Failed to save {self.settings_file}: {e}")
