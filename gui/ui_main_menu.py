@@ -530,9 +530,31 @@ class MainMenu(tk.Tk):
         except tk.TclError:
             current = None
         if current == self._clipboard_expected_text:
-            self.clipboard_clear()
-            self.update()
-            print("Clipboard auto-cleared for security")
+            # On Windows, ``clipboard_clear()`` alone does NOT actually
+            # wipe the OS clipboard -- the contents linger until something
+            # else takes ownership of the clipboard. The reliable fix is
+            # to clear, write a single empty string, and then call
+            # update() to push the change through.
+            try:
+                self.clipboard_clear()
+                self.clipboard_append("")
+                self.update()
+                # Verify
+                try:
+                    after = self.clipboard_get()
+                except tk.TclError:
+                    after = ""
+                if after:
+                    print(
+                        f"[main_menu] Clipboard auto-clear left text behind "
+                        f"(len={len(after)}); retrying."
+                    )
+                    self.clipboard_clear()
+                    self.clipboard_append(" ")
+                    self.update()
+                print("Clipboard auto-cleared for security")
+            except Exception as e:
+                print(f"[main_menu] Clipboard auto-clear failed: {e}")
         self._clipboard_expected_text = None
 
     def open_website(self, url):

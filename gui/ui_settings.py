@@ -139,12 +139,21 @@ class SettingsWindow(tk.Toplevel):
     def _build_security_section(self, parent):
         frame = self._make_section(parent, "Security")
 
+        # IMPORTANT: every StringVar passes ``master=self`` so that it is
+        # bound to THIS Toplevel's Tk root. Without this, when LoginWindow
+        # and MainMenu are both alive (each is its own Tk root), the
+        # StringVar silently attaches to the LoginWindow's root and the
+        # combobox here (which lives on MainMenu's root) cannot read or
+        # write its value -- causing _on_save to KeyError on "" and
+        # silently leaving the JSON file at defaults.
+
         # Auto-logout
         self.auto_logout_var = tk.StringVar(
+            master=self,
             value=_label_for_value(
                 AUTO_LOGOUT_OPTIONS,
                 self.settings_manager.get_auto_logout_time(),
-            )
+            ),
         )
         self._make_dropdown(
             frame,
@@ -159,10 +168,11 @@ class SettingsWindow(tk.Toplevel):
 
         # Password renewal
         self.renewal_var = tk.StringVar(
+            master=self,
             value=_label_for_value(
                 PASSWORD_RENEWAL_OPTIONS,
                 self.settings_manager.get_password_renewal_days(),
-            )
+            ),
         )
         self._make_dropdown(
             frame,
@@ -178,10 +188,11 @@ class SettingsWindow(tk.Toplevel):
 
         # Clipboard auto-clear
         self.clipboard_var = tk.StringVar(
+            master=self,
             value=_label_for_value(
                 CLIPBOARD_AUTOCLEAR_OPTIONS,
                 self.settings_manager.get_clipboard_autoclear_seconds(),
-            )
+            ),
         )
         self._make_dropdown(
             frame,
@@ -196,10 +207,11 @@ class SettingsWindow(tk.Toplevel):
 
         # Password strength requirement
         self.strength_var = tk.StringVar(
+            master=self,
             value=_label_for_value(
                 PASSWORD_STRENGTH_OPTIONS,
                 self.settings_manager.get_password_strength_requirement(),
-            )
+            ),
         )
         self._make_dropdown(
             frame,
@@ -220,10 +232,11 @@ class SettingsWindow(tk.Toplevel):
         frame = self._make_section(parent, "Account Organization")
 
         self.sort_var = tk.StringVar(
+            master=self,
             value=_label_for_value(
                 SORT_BY_OPTIONS,
                 self.settings_manager.get_account_sort_by(),
-            )
+            ),
         )
         self._make_dropdown(
             frame,
@@ -348,6 +361,17 @@ class SettingsWindow(tk.Toplevel):
         )
         combo.grid(row=0, column=1, padx=(10, 0), sticky="e")
 
+        # Force the combobox to display the variable's current value.
+        # Required because, on some Tk builds, a freshly-created Combobox
+        # does not reliably mirror its textvariable's pre-existing value
+        # until the user interacts with it.
+        initial = variable.get()
+        if initial in options:
+            combo.set(initial)
+        elif options:
+            combo.set(options[0])
+            variable.set(options[0])
+
         row.columnconfigure(0, weight=1)
 
         tk.Label(
@@ -365,11 +389,69 @@ class SettingsWindow(tk.Toplevel):
     # ------------------------------------------------------------------
     def _on_save(self):
         sm = self.settings_manager
-        sm.set("auto_logout_time", AUTO_LOGOUT_OPTIONS[self.auto_logout_var.get()])
-        sm.set("password_renewal_days", PASSWORD_RENEWAL_OPTIONS[self.renewal_var.get()])
-        sm.set("clipboard_autoclear_seconds", CLIPBOARD_AUTOCLEAR_OPTIONS[self.clipboard_var.get()])
-        sm.set("password_strength_requirement", PASSWORD_STRENGTH_OPTIONS[self.strength_var.get()])
-        sm.set("account_sort_by", SORT_BY_OPTIONS[self.sort_var.get()])
+
+        # Defensive lookup helper -- if the StringVar somehow returned an
+        # empty / unknown string, fall back to the currently-stored
+        # setting value rather than raising KeyError (which used to abort
+        # _on_save silently and leave the JSON file at defaults).
+        def resolve(options, label, current):
+            if label in options:
+                return options[label]
+            print(
+                f"[settings] WARNING: dropdown returned unknown label "
+                f"{label!r}; keeping current value {current!r}."
+            )
+            return current
+
+        sm.set(
+            "auto_logout_time",
+            resolve(
+                AUTO_LOGOUT_OPTIONS,
+                self.auto_logout_var.get(),
+                sm.get_auto_logout_time(),
+            ),
+        )
+        sm.set(
+            "password_renewal_days",
+            resolve(
+                PASSWORD_RENEWAL_OPTIONS,
+                self.renewal_var.get(),
+                sm.get_password_renewal_days(),
+            ),
+        )
+        sm.set(
+            "clipboard_autoclear_seconds",
+            resolve(
+                CLIPBOARD_AUTOCLEAR_OPTIONS,
+                self.clipboard_var.get(),
+                sm.get_clipboard_autoclear_seconds(),
+            ),
+        )
+        sm.set(
+            "password_strength_requirement",
+            resolve(
+                PASSWORD_STRENGTH_OPTIONS,
+                self.strength_var.get(),
+                sm.get_password_strength_requirement(),
+            ),
+        )
+        sm.set(
+            "account_sort_by",
+            resolve(
+                SORT_BY_OPTIONS,
+                self.sort_var.get(),
+                sm.get_account_sort_by(),
+            ),
+        )
+
+        print(
+            f"[settings] saving for {self.username}: "
+            f"auto_logout={sm.get_auto_logout_time()}, "
+            f"renewal={sm.get_password_renewal_days()}, "
+            f"clipboard={sm.get_clipboard_autoclear_seconds()}, "
+            f"strength={sm.get_password_strength_requirement()!r}, "
+            f"sort={sm.get_account_sort_by()!r}"
+        )
 
         if sm.save():
             messagebox.showinfo(
@@ -621,8 +703,10 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
         self.confirm_entry = tk.Entry(form, font=("Arial", 11), width=26, show="*")
         self.confirm_entry.grid(row=2, column=1, padx=8, pady=6)
 
-        # Show/hide toggle
-        self.show_var = tk.BooleanVar(value=False)
+        # Show/hide toggle.
+        # ``master=self`` avoids attaching to the wrong Tk root when the
+        # app has multiple roots (LoginWindow + MainMenu).
+        self.show_var = tk.BooleanVar(master=self, value=False)
         tk.Checkbutton(
             self,
             text="Show passwords",

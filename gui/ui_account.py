@@ -139,7 +139,11 @@ class AccountWindow(tk.Toplevel):
             padx=5
         ).pack(side=tk.LEFT, padx=(0, 5))
 
-        self.show_password_var = tk.BooleanVar(value=False)
+        # ``master=self`` ensures this var is bound to THIS Toplevel's Tk
+        # root, not the (potentially-different) default root. Important
+        # when the app keeps multiple Tk roots alive simultaneously
+        # (LoginWindow + MainMenu).
+        self.show_password_var = tk.BooleanVar(master=self, value=False)
         self.show_password_checkbox = tk.Checkbutton(
             password_container,
             text="Show",
@@ -292,16 +296,29 @@ class AccountWindow(tk.Toplevel):
                 should_check = False
 
         if should_check and self.settings_manager is not None:
+            req = self.settings_manager.get_password_strength_requirement()
+            print(
+                f"[ui_account] enforcing strength requirement "
+                f"{req!r} on save (mode={self.mode})"
+            )
+
+            # Import here so a missing utils module surfaces loudly.
             try:
                 from utils.entropy_calculator import meets_strength_requirement
-                req = self.settings_manager.get_password_strength_requirement()
-                ok, msg = meets_strength_requirement(password, req)
-                if not ok:
-                    messagebox.showerror("Weak Password", msg, parent=self)
-                    self.password_entry.focus()
-                    return
-            except Exception as e:
-                print(f"[ui_account] strength check failed: {e}")
+            except ImportError as e:
+                messagebox.showerror(
+                    "Internal error",
+                    f"Could not load password strength checker:\n{e}",
+                    parent=self,
+                )
+                return
+
+            ok, msg = meets_strength_requirement(password, req)
+            print(f"[ui_account] strength check -> ok={ok}, msg={msg!r}")
+            if not ok:
+                messagebox.showerror("Weak Password", msg, parent=self)
+                self.password_entry.focus()
+                return
 
         # Save account
         try:
