@@ -55,7 +55,7 @@ class SettingsWindow(tk.Toplevel):
 
         self.title(f"Settings - {username} - BlueVault")
         self.geometry("640x720")
-        self.configure(bg="#f0f0f0")
+        self.configure(bg="#23272a")
         self.resizable(False, True)
 
         # Make modal-ish
@@ -73,24 +73,25 @@ class SettingsWindow(tk.Toplevel):
             self,
             text="Settings",
             font=("Arial", 20, "bold"),
-            bg="#f0f0f0",
+            bg="#23272a",
+            fg="#7289da"
         ).pack(pady=(18, 6))
 
         tk.Label(
             self,
             text=f"Logged in as: {self.username}",
             font=("Arial", 10, "italic"),
-            bg="#f0f0f0",
-            fg="#666666",
+            bg="#23272a",
+            fg="#bbbbbb",
         ).pack(pady=(0, 10))
 
         # Scrollable container so the window stays usable on smaller screens
-        container = tk.Frame(self, bg="#f0f0f0")
+        container = tk.Frame(self, bg="#23272a")
         container.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
-        canvas = tk.Canvas(container, bg="#f0f0f0", highlightthickness=0)
+        canvas = tk.Canvas(container, bg="#23272a", highlightthickness=0)
         scroll = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
-        inner = tk.Frame(canvas, bg="#f0f0f0")
+        inner = tk.Frame(canvas, bg="#23272a")
 
         inner.bind(
             "<Configure>",

@@ -11,7 +11,7 @@ class MainMenu(tk.Tk):
         super().__init__()
         self.title("BlueVault")
         self.geometry("1100x700")
-        self.configure(bg="#f0f0f0")
+        self.configure(bg="#23272a")  # Dark gray background
 
         # Store user info and login window reference
         self.username = username
@@ -56,20 +56,21 @@ class MainMenu(tk.Tk):
         self.start_timer()
 
     def create_header(self):
-        """Create the header with title, user info, and action buttons."""
-        header_frame = tk.Frame(self, bg="#ffffff", height=100, relief=tk.RAISED, borderwidth=1)
+        """Create the header with logo, user info, and action buttons."""
+        header_frame = tk.Frame(self, bg="#2c2f33", height=100, relief=tk.RAISED, borderwidth=1)
         header_frame.pack(fill=tk.X, padx=10, pady=10)
         header_frame.pack_propagate(False)
 
         # Left side - User info
-        left_frame = tk.Frame(header_frame, bg="#ffffff")
+        left_frame = tk.Frame(header_frame, bg="#2c2f33")
         left_frame.pack(side=tk.LEFT, padx=20, pady=10)
 
         tk.Label(
             left_frame,
             text=f"Logged in as: {self.username}",
             font=("Arial", 11),
-            bg="#ffffff",
+            bg="#2c2f33",
+            fg="#ffffff",
             anchor="w"
         ).pack(anchor="w")
 
@@ -78,21 +79,26 @@ class MainMenu(tk.Tk):
             left_frame,
             text=self._format_time(self.time_remaining),
             font=("Arial", 11),
-            bg="#ffffff",
+            bg="#2c2f33",
+            fg="#ffffff",
             anchor="w"
         )
         self.timer_label.pack(anchor="w", pady=(5, 0))
 
-        # Center - Title
-        tk.Label(
-            header_frame,
-            text="BlueVault",
-            font=("Arial", 24, "bold"),
-            bg="#ffffff"
-        ).pack(side=tk.LEFT, expand=True)
+        # Center - PNG Logo (replace 'logo.png' with your file)
+        try:
+            from tkinter import PhotoImage
+            logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+            self.logo_img = PhotoImage(file=logo_path)
+            logo_label = tk.Label(header_frame, image=self.logo_img, bg="#2c2f33")
+            logo_label.pack(side=tk.LEFT, expand=True)
+        except Exception as e:
+            # If logo not found, show nothing (or fallback text)
+            logo_label = tk.Label(header_frame, text="", bg="#2c2f33")
+            logo_label.pack(side=tk.LEFT, expand=True)
 
         # Right side - Action buttons
-        buttons_frame = tk.Frame(header_frame, bg="#ffffff")
+        buttons_frame = tk.Frame(header_frame, bg="#2c2f33")
         buttons_frame.pack(side=tk.RIGHT, padx=20, pady=10)
 
         # Button configuration: (symbol, label, command, color)
@@ -109,7 +115,7 @@ class MainMenu(tk.Tk):
 
     def create_text_button(self, parent, symbol, label_text, command, color):
         """Create a text-based button with symbol and label."""
-        button_frame = tk.Frame(parent, bg="#ffffff")
+        button_frame = tk.Frame(parent, bg="#2c2f33")
         button_frame.pack(side=tk.LEFT, padx=8)
 
         # Create button with symbol
@@ -134,7 +140,8 @@ class MainMenu(tk.Tk):
             button_frame,
             text=label_text,
             font=("Arial", 9),
-            bg="#ffffff"
+            bg="#2c2f33",
+            fg="#ffffff"
         ).pack(pady=(5, 0))
 
     def create_main_content(self):
@@ -196,10 +203,11 @@ class MainMenu(tk.Tk):
 
         # Load accounts from manager, then sort
         accounts = self.account_manager.get_all_accounts()
+        print(f"[DEBUG] refresh_accounts: loaded {len(accounts)} accounts for user {self.username}")
         accounts = self._sort_accounts(accounts)
 
         if not accounts:
-            # Show empty state message
+            print("[DEBUG] No accounts found. Displaying empty state message.")
             tk.Label(
                 self.scrollable_frame,
                 text="No accounts yet.\n\nClick the '+' button to create your first account!",
@@ -208,6 +216,7 @@ class MainMenu(tk.Tk):
                 fg="#888888"
             ).grid(row=0, column=0, pady=100, padx=100)
         else:
+            print(f"[DEBUG] Displaying {len(accounts)} account cards.")
             # Calculate number of columns based on window width
             window_width = self.winfo_width()
             if window_width < 100:

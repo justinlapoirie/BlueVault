@@ -40,7 +40,7 @@ class AccountWindow(tk.Toplevel):
 
         self.geometry("500x620")
         self.resizable(False, False)
-        self.configure(bg="#f0f0f0")
+            self.configure(bg="#23272a")
 
         # Make window modal
         self.transient(master)
@@ -100,7 +100,8 @@ class AccountWindow(tk.Toplevel):
             password_label_frame,
             text="Password: *",
             font=("Arial", 11, "bold"),
-            bg="#f0f0f0"
+            bg="#23272a",
+            fg="#ffffff"
         ).pack(side=tk.LEFT)
 
         # Strength-requirement hint next to the label
@@ -111,19 +112,26 @@ class AccountWindow(tk.Toplevel):
                     password_label_frame,
                     text=f"  (min: {req.capitalize()})",
                     font=("Arial", 9, "italic"),
-                    bg="#f0f0f0",
-                    fg="#666666",
+                    bg="#23272a",
+                    fg="#888888",
                 ).pack(side=tk.LEFT)
 
         # Password entry with show/hide and generate button
-        password_container = tk.Frame(form_frame, bg="#f0f0f0")
+
+        password_container = tk.Frame(form_frame, bg="#23272a")
         password_container.grid(row=5, column=0, pady=(0, 15))
 
         self.password_entry = tk.Entry(
             password_container,
             font=("Arial", 11),
             width=26,
-            show="*"
+            show="*",
+            bg="#2c2f33",
+            fg="#ffffff",
+            insertbackground="#ffffff",
+            relief=tk.FLAT,
+            highlightthickness=1,
+            highlightbackground="#444"
         )
         self.password_entry.pack(side=tk.LEFT, padx=(0, 5))
 
@@ -131,12 +139,17 @@ class AccountWindow(tk.Toplevel):
             password_container,
             text="🔑 Generate",
             command=self.generate_password,
-            font=("Arial", 9),
-            bg="#4CAF50",
+            font=("Arial", 9, "bold"),
+            bg="#2196F3",
             fg="white",
+            activebackground="#1976D2",
+            activeforeground="#ffffff",
             cursor="hand2",
-            relief=tk.RAISED,
-            padx=5
+            relief=tk.FLAT,
+            padx=5,
+            bd=0,
+            highlightbackground="#23272a",
+            highlightthickness=0
         ).pack(side=tk.LEFT, padx=(0, 5))
 
         # ``master=self`` ensures this var is bound to THIS Toplevel's Tk
@@ -150,20 +163,26 @@ class AccountWindow(tk.Toplevel):
             variable=self.show_password_var,
             command=self.toggle_password,
             font=("Arial", 9),
-            bg="#f0f0f0"
+            bg="#23272a",
+            fg="#ffffff",
+            activebackground="#23272a",
+            selectcolor="#23272a",
+            highlightbackground="#23272a"
         )
         self.show_password_checkbox.pack(side=tk.LEFT)
 
         # Website URL (Optional)
+
         tk.Label(
             form_frame,
             text="Website URL: (optional)",
             font=("Arial", 11),
-            bg="#f0f0f0",
+            bg="#23272a",
+            fg="#ffffff",
             anchor="w"
         ).grid(row=6, column=0, sticky="w", pady=(0, 5))
 
-        self.website_entry = tk.Entry(form_frame, font=("Arial", 11), width=40)
+        self.website_entry = tk.Entry(form_frame, font=("Arial", 11), width=40, bg="#2c2f33", fg="#ffffff", insertbackground="#ffffff", relief=tk.FLAT, highlightthickness=1, highlightbackground="#444")
         self.website_entry.grid(row=7, column=0, pady=(0, 15))
 
         # Notes (Optional)
@@ -171,7 +190,8 @@ class AccountWindow(tk.Toplevel):
             form_frame,
             text="Notes: (optional)",
             font=("Arial", 11),
-            bg="#f0f0f0",
+            bg="#23272a",
+            fg="#ffffff",
             anchor="w"
         ).grid(row=8, column=0, sticky="w", pady=(0, 5))
 
@@ -180,7 +200,13 @@ class AccountWindow(tk.Toplevel):
             font=("Arial", 10),
             width=40,
             height=5,
-            wrap=tk.WORD
+            wrap=tk.WORD,
+            bg="#2c2f33",
+            fg="#ffffff",
+            insertbackground="#ffffff",
+            relief=tk.FLAT,
+            highlightthickness=1,
+            highlightbackground="#444"
         )
         self.notes_text.grid(row=9, column=0, pady=(0, 15))
 
@@ -189,51 +215,57 @@ class AccountWindow(tk.Toplevel):
             form_frame,
             text="* Required fields",
             font=("Arial", 9, "italic"),
-            bg="#f0f0f0",
-            fg="#666666"
+            bg="#23272a",
+            fg="#888888"
         ).grid(row=10, column=0, sticky="w")
 
         # Buttons frame
-        button_frame = tk.Frame(self, bg="#f0f0f0")
+        button_frame = tk.Frame(self, bg="#23272a")
         button_frame.pack(pady=20)
+
+        button_style = {
+            "font": ("Arial", 12, "bold"),
+            "bg": "#2196F3",
+            "fg": "white",
+            "activebackground": "#1976D2",
+            "activeforeground": "#ffffff",
+            "cursor": "hand2",
+            "width": 12,
+            "height": 2,
+            "relief": tk.FLAT,
+            "bd": 0,
+            "highlightbackground": "#23272a",
+            "highlightthickness": 0
+        }
 
         tk.Button(
             button_frame,
             text="Save",
             command=self.save_account,
-            font=("Arial", 12, "bold"),
-            bg="#4CAF50",
-            fg="white",
-            width=12,
-            height=2,
-            cursor="hand2"
+            **button_style
         ).pack(side=tk.LEFT, padx=10)
 
         tk.Button(
             button_frame,
             text="Cancel",
             command=self.destroy,
-            font=("Arial", 12),
-            bg="#9E9E9E",
-            fg="white",
-            width=12,
-            height=2,
-            cursor="hand2"
+            **button_style
         ).pack(side=tk.LEFT, padx=10)
 
     def toggle_password(self):
         """Toggle password visibility."""
         if self.show_password_var.get():
             self.password_entry.config(show="")
-        else:
-            self.password_entry.config(show="*")
-        self.password_entry.update_idletasks()
-
-    def generate_password(self):
-        """Generate a password with default parameters and insert into field."""
+            tk.Label(
+                self,
+                text=title_text,
+                font=("Arial", 18, "bold"),
+                bg="#23272a",
+                fg="#7289da"
+            ).pack(pady=16)
         try:
             from services.password_generator import PasswordGenerator
-
+            form_frame = tk.Frame(self, bg="#23272a", highlightbackground="#7289da", highlightthickness=2, bd=0)
             generator = PasswordGenerator(
                 length=12,
                 include_uppercase=True,

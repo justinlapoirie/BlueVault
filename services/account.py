@@ -63,6 +63,7 @@ class AccountManager:
                 encrypted_data = f.read()
 
             if not encrypted_data:
+                print(f"Vault file {self.vault_file} is empty.")
                 return []
 
             # Decrypt the data
@@ -74,9 +75,15 @@ class AccountManager:
             for acc in accounts:
                 acc.setdefault("last_copied", None)
 
+            print(f"Loaded {len(accounts)} accounts from vault {self.vault_file}.")
             return accounts
         except Exception as e:
             print(f"Error loading vault: {e}")
+            try:
+                import tkinter.messagebox as messagebox
+                messagebox.showerror("Vault Error", f"Error loading vault: {e}\nFile: {self.vault_file}")
+            except Exception as gui_e:
+                print(f"(GUI error dialog failed: {gui_e})")
             return []
 
     def _save_vault(self, accounts):

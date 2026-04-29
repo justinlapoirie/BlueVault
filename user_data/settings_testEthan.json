@@ -1,0 +1,7 @@
+{
+    "auto_logout_time": 300,
+    "password_renewal_days": 0,
+    "clipboard_autoclear_seconds": 60,
+    "password_strength_requirement": "off",
+    "account_sort_by": "alphabetical"
+}

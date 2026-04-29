@@ -14,6 +14,7 @@ class PasswordGeneratorApp(tk.Toplevel):
         super().__init__(master)
         self.title("Password Generator - BlueVault")
         self.geometry("600x500")
+        self.configure(bg="#23272a")
         
         # Import and create password generator instance with defaults
         from services.password_generator import PasswordGenerator
@@ -24,24 +25,25 @@ class PasswordGeneratorApp(tk.Toplevel):
     def create_widgets(self):
         # Title
         title_label = tk.Label(
-            self, text="Password Generator", font=("Arial", 18, "bold")
+            self, text="Password Generator", font=("Arial", 18, "bold"), bg="#23272a", fg="#7289da"
         )
-        title_label.pack(pady=20)
+        title_label.pack(pady=16)
 
         # Frame for password length
-        length_frame = tk.Frame(self)
+        length_frame = tk.Frame(self, bg="#23272a")
         length_frame.pack(pady=10)
 
-        tk.Label(length_frame, text="Password Length:", font=("Arial", 11)).pack(
+        tk.Label(length_frame, text="Password Length:", font=("Arial", 11), bg="#23272a", fg="#ffffff").pack(
             side=tk.LEFT, padx=5
         )
         self.length_var = tk.StringVar(value="12")
-        length_entry = tk.Entry(length_frame, textvariable=self.length_var, width=10)
+        length_entry = tk.Entry(length_frame, textvariable=self.length_var, width=10, bg="#2c2f33", fg="#ffffff", insertbackground="#ffffff", relief=tk.FLAT, highlightthickness=1, highlightbackground="#444")
         length_entry.pack(side=tk.LEFT, padx=5)
 
         # Frame for character type options
         options_frame = tk.LabelFrame(
-            self, text="Include Character Types", font=("Arial", 11), padx=20, pady=10
+            self, text="Include Character Types", font=("Arial", 11), padx=20, pady=10,
+            bg="#23272a", fg="#ffffff", highlightbackground="#7289da", highlightcolor="#7289da"
         )
         options_frame.pack(pady=15, padx=20, fill=tk.BOTH)
 
@@ -52,52 +54,64 @@ class PasswordGeneratorApp(tk.Toplevel):
         self.symbols_var = tk.BooleanVar(value=True)
 
         #Uppercase checkbox
+        checkbutton_style = {"bg": "#23272a", "fg": "#ffffff", "activebackground": "#23272a", "selectcolor": "#23272a", "highlightbackground": "#23272a"}
         tk.Checkbutton(
             options_frame,
             text="Uppercase (A-Z)",
             variable=self.uppercase_var,
             font=("Arial", 10),
+            **checkbutton_style
         ).pack(anchor=tk.W, pady=2)
 
-        # Lowercase checkbox
         tk.Checkbutton(
             options_frame,
             text="Lowercase (a-z)",
             variable=self.lowercase_var,
             font=("Arial", 10),
+            **checkbutton_style
         ).pack(anchor=tk.W, pady=2)
 
-        # Digits checkbox
         tk.Checkbutton(
             options_frame,
             text="Digits (0-9)",
             variable=self.digits_var,
             font=("Arial", 10),
+            **checkbutton_style
         ).pack(anchor=tk.W, pady=2)
 
-        # Symbols checkbox
         tk.Checkbutton(
             options_frame,
             text="Symbols (!@#$...)",
             variable=self.symbols_var,
             font=("Arial", 10),
+            **checkbutton_style
         ).pack(anchor=tk.W, pady=2)
 
         # Generate button
+        button_style = {
+            "font": ("Arial", 12, "bold"),
+            "bg": "#2196F3",
+            "fg": "white",
+            "activebackground": "#1976D2",
+            "activeforeground": "#ffffff",
+            "cursor": "hand2",
+            "relief": tk.FLAT,
+            "bd": 0,
+            "highlightbackground": "#23272a",
+            "highlightthickness": 0,
+            "padx": 20,
+            "pady": 10
+        }
         self.generate_button = tk.Button(
             self,
             text="Generate Password",
             command=self.on_button_click,
-            font=("Arial", 12, "bold"),
-            bg="#4CAF50",
-            fg="white",
-            padx=20,
-            pady=10,
+            **button_style
         )
         self.generate_button.pack(pady=15)
 
         # Frame for displaying password
-        password_frame = tk.Frame(self)
+        password_frame = tk.Frame(self, bg="#23272a")
         password_frame.pack(pady=10, padx=20, fill=tk.BOTH)
 
         self.password_label = tk.Label(

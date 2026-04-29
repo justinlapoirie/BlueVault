@@ -1,1 +1,17 @@
-
+{
+    "test1": {
+        "password_hash": "38f8afa35b861bd6618e2b2fc2ab0ec88c64ad9298814fb6c57be01e5514f179",
+        "salt": "b42ec47ac81df0ef389c8231da9108cdc35d9febf0b8548ab48368b33621cc43",
+        "email": "test@gmail.com"
+    },
+    "test123": {
+        "password_hash": "2f908bbb08a2eb7b66a991c62c886f34bba2708589dcc2a8cac079353c5ab925",
+        "salt": "e28321cb9386d8a119d3bc1dafe817a7e01f9be1a2daa0fa12624621a05c266c",
+        "email": "test@gmail.com"
+    },
+    "testEthan": {
+        "password_hash": "cd641918bf42e85e8e700a12364254749f2f6825e1d7442c04f6db336234cf30",
+        "salt": "a3f64ab862cf023355c8414be2671f768f27a48e25c3c37802ba6edb1e3ddc51",
+        "email": "ethantest@gmail.com"
+    }
+}

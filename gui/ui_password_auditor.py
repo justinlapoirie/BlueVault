@@ -14,7 +14,7 @@ class PasswordAuditorApp(tk.Toplevel):
         super().__init__(master)
         self.title("Password Auditor - BlueVault")
         self.geometry("550x600")
-        self.configure(bg="#f0f0f0")
+        self.configure(bg="#23272a")
         
         # Import and create password auditor instance
         from services.password_auditor import PasswordAuditor
@@ -28,17 +28,18 @@ class PasswordAuditorApp(tk.Toplevel):
             self, 
             text="Password Auditor", 
             font=("Arial", 18, "bold"),
-            bg="#f0f0f0"
+            bg="#23272a",
+            fg="#7289da"
         )
-        title_label.pack(pady=20)
+        title_label.pack(pady=16)
 
         # Instructions
         instructions = tk.Label(
             self,
             text="Enter or paste a password to check its security",
             font=("Arial", 11),
-            bg="#f0f0f0",
-            fg="#666666"
+            bg="#23272a",
+            fg="#bbbbbb"
         )
         instructions.pack(pady=5)
 
@@ -47,21 +48,30 @@ class PasswordAuditorApp(tk.Toplevel):
             self, 
             text="Password to Audit", 
             font=("Arial", 11, "bold"),
-            bg="#f0f0f0",
+            bg="#23272a",
+            fg="#ffffff",
             padx=20, 
-            pady=15
+            pady=15,
+            highlightbackground="#7289da",
+            highlightcolor="#7289da"
         )
         input_frame.pack(pady=15, padx=20, fill=tk.BOTH)
 
         # Password entry with show/hide toggle
-        entry_container = tk.Frame(input_frame, bg="#f0f0f0")
+        entry_container = tk.Frame(input_frame, bg="#23272a")
         entry_container.pack(fill=tk.X)
 
         self.password_entry = tk.Entry(
             entry_container, 
             font=("Courier", 12),
             width=35,
-            show="*"
+            show="*",
+            bg="#2c2f33",
+            fg="#ffffff",
+            insertbackground="#ffffff",
+            relief=tk.FLAT,
+            highlightthickness=1,
+            highlightbackground="#444"
         )
         self.password_entry.pack(side=tk.LEFT, padx=(0, 10))
         self.password_entry.focus()
@@ -74,7 +84,11 @@ class PasswordAuditorApp(tk.Toplevel):
             variable=self.show_password_var,
             command=self.toggle_password_visibility,
             font=("Arial", 9),
-            bg="#f0f0f0"
+            bg="#23272a",
+            fg="#ffffff",
+            activebackground="#23272a",
+            selectcolor="#23272a",
+            highlightbackground="#23272a"
         )
         self.toggle_button.pack(side=tk.LEFT)
 
@@ -82,16 +96,25 @@ class PasswordAuditorApp(tk.Toplevel):
         self.password_entry.bind("<Return>", lambda e: self.audit_password())
 
         # Audit button
+        button_style = {
+            "font": ("Arial", 12, "bold"),
+            "bg": "#2196F3",
+            "fg": "white",
+            "activebackground": "#1976D2",
+            "activeforeground": "#ffffff",
+            "cursor": "hand2",
+            "relief": tk.FLAT,
+            "bd": 0,
+            "highlightbackground": "#23272a",
+            "highlightthickness": 0,
+            "padx": 20,
+            "pady": 10
+        }
         self.audit_button = tk.Button(
             self,
             text="Audit Password",
             command=self.audit_password,
-            font=("Arial", 12, "bold"),
-            bg="#FF9800",
-            fg="white",
-            padx=20,
-            pady=10,
-            cursor="hand2"
+            **button_style
         )
         self.audit_button.pack(pady=15)
 
