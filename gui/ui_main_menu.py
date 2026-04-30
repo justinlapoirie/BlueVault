@@ -101,13 +101,14 @@ class MainMenu(tk.Tk):
         buttons_frame = tk.Frame(header_frame, bg="#2c2f33")
         buttons_frame.pack(side=tk.RIGHT, padx=20, pady=10)
 
-        # Button configuration: (symbol, label, command, color)
+        # All buttons use the same blue color for consistency
+        blue_color = "#2196F3"
         buttons = [
-            ("+", "New Account.", self.open_new_account, "#4CAF50"),
-            ("💡", "PW Generator", self.open_password_generator, "#2196F3"),
-            ("🔍", "PW audit.", self.open_password_auditor, "#FF9800"),
-            ("⚙", "Settings.", self.open_settings, "#9E9E9E"),
-            ("→", "Log out.", self.logout, "#F44336")
+            ("+", "New Account.", self.open_new_account, blue_color),
+            ("💡", "PW Generator", self.open_password_generator, blue_color),
+            ("🔍", "PW audit.", self.open_password_auditor, blue_color),
+            ("⚙", "Settings.", self.open_settings, blue_color),
+            ("→", "Log out.", self.logout, blue_color)
         ]
 
         for symbol, label_text, command, color in buttons:

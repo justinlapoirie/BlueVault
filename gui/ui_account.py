@@ -40,7 +40,7 @@ class AccountWindow(tk.Toplevel):
 
         self.geometry("500x620")
         self.resizable(False, False)
-            self.configure(bg="#23272a")
+        self.configure(bg="#23272a")
 
         # Make window modal
         self.transient(master)
@@ -60,11 +60,12 @@ class AccountWindow(tk.Toplevel):
             self,
             text=title_text,
             font=("Arial", 18, "bold"),
-            bg="#f0f0f0"
-        ).pack(pady=20)
+            bg="#23272a",
+            fg="#7289da"
+        ).pack(pady=16)
 
         # Form frame
-        form_frame = tk.Frame(self, bg="#f0f0f0")
+        form_frame = tk.Frame(self, bg="#23272a", highlightbackground="#7289da", highlightthickness=2, bd=0)
         form_frame.pack(pady=10, padx=40, fill=tk.BOTH, expand=True)
 
         # Account Name (Required)
@@ -72,11 +73,12 @@ class AccountWindow(tk.Toplevel):
             form_frame,
             text="Account Name: *",
             font=("Arial", 11, "bold"),
-            bg="#f0f0f0",
+            bg="#23272a",
+            fg="#ffffff",
             anchor="w"
         ).grid(row=0, column=0, sticky="w", pady=(0, 5))
 
-        self.account_name_entry = tk.Entry(form_frame, font=("Arial", 11), width=40)
+        self.account_name_entry = tk.Entry(form_frame, font=("Arial", 11), width=40, bg="#2c2f33", fg="#ffffff", insertbackground="#ffffff", relief=tk.FLAT, highlightthickness=1, highlightbackground="#444")
         self.account_name_entry.grid(row=1, column=0, pady=(0, 15))
         self.account_name_entry.focus()
 
@@ -85,15 +87,16 @@ class AccountWindow(tk.Toplevel):
             form_frame,
             text="Username/Email: *",
             font=("Arial", 11, "bold"),
-            bg="#f0f0f0",
+            bg="#23272a",
+            fg="#ffffff",
             anchor="w"
         ).grid(row=2, column=0, sticky="w", pady=(0, 5))
 
-        self.username_entry = tk.Entry(form_frame, font=("Arial", 11), width=40)
+        self.username_entry = tk.Entry(form_frame, font=("Arial", 11), width=40, bg="#2c2f33", fg="#ffffff", insertbackground="#ffffff", relief=tk.FLAT, highlightthickness=1, highlightbackground="#444")
         self.username_entry.grid(row=3, column=0, pady=(0, 15))
 
         # Password (Required)
-        password_label_frame = tk.Frame(form_frame, bg="#f0f0f0")
+        password_label_frame = tk.Frame(form_frame, bg="#23272a")
         password_label_frame.grid(row=4, column=0, sticky="w", pady=(0, 5))
 
         tk.Label(
@@ -256,16 +259,12 @@ class AccountWindow(tk.Toplevel):
         """Toggle password visibility."""
         if self.show_password_var.get():
             self.password_entry.config(show="")
-            tk.Label(
-                self,
-                text=title_text,
-                font=("Arial", 18, "bold"),
-                bg="#23272a",
-                fg="#7289da"
-            ).pack(pady=16)
+        else:
+            self.password_entry.config(show="*")
+    def generate_password(self):
+        """Generate a new password and insert it into the password entry."""
         try:
             from services.password_generator import PasswordGenerator
-            form_frame = tk.Frame(self, bg="#23272a", highlightbackground="#7289da", highlightthickness=2, bd=0)
             generator = PasswordGenerator(
                 length=12,
                 include_uppercase=True,
@@ -273,15 +272,11 @@ class AccountWindow(tk.Toplevel):
                 include_digits=True,
                 include_symbols=True
             )
-
             password = generator.generate_password()
-
             self.password_entry.delete(0, tk.END)
             self.password_entry.insert(0, password)
-
             self.show_password_var.set(True)
             self.toggle_password()
-
         except Exception as e:
             messagebox.showerror("Error", f"Failed to generate password: {str(e)}")
 
