@@ -52,112 +52,126 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 LIGHT_THEME: Dict[str, str] = {
     # Surfaces
-    "app_bg":            "#f0f0f0",  # outer window background
+    "app_bg":            "#f8f9fa",  # outer window background (soft off-white)
     "surface_bg":        "#ffffff",  # card / panel background
-    "surface_alt_bg":    "#f9f9f9",  # alternate panel background
-    "header_bg":         "#e8eaed",  # main-menu header bar
+    "surface_alt_bg":    "#f1f3f5",  # alternate panel background
+    "header_bg":         "#ffffff",  # main-menu header bar
+    "sidebar_bg":        "#eef0f4",  # left navigation sidebar
+    "sidebar_hover":     "#dde1ea",  # sidebar item hover
+    "sidebar_active":    "#4A90D9",  # active sidebar item bg
+    "sidebar_fg":        "#3c4858",  # sidebar icon/text color
+    "sidebar_active_fg": "#ffffff",  # active sidebar item text
     "section_bg":        "#ffffff",  # settings section card
-    "section_border":    "#2196F3",  # accent border around sections
+    "section_border":    "#4A90D9",  # accent border around sections
 
     # Text
-    "text_primary":      "#202124",
-    "text_secondary":    "#666666",
-    "text_muted":        "#888888",
+    "text_primary":      "#1a202c",
+    "text_secondary":    "#4a5568",
+    "text_muted":        "#718096",
     "text_inverse":      "#ffffff",
 
-    # Accent + brand
-    "accent":            "#2196F3",
-    "accent_active":     "#1976D2",
-    "logo_accent":       "#2196F3",
+    # Accent + brand (slightly muted premium blue)
+    "accent":            "#4A90D9",
+    "accent_active":     "#357ABD",
+    "logo_accent":       "#4A90D9",
 
     # Inputs
     "input_bg":          "#ffffff",
-    "input_fg":          "#202124",
-    "input_caret":       "#202124",
-    "input_border":      "#cccccc",
+    "input_fg":          "#1a202c",
+    "input_caret":       "#1a202c",
+    "input_border":      "#cbd5e0",
+    "input_focus_border":"#4A90D9",
 
     # Buttons
-    "btn_primary_bg":    "#2196F3",
+    "btn_primary_bg":    "#4A90D9",
     "btn_primary_fg":    "#ffffff",
-    "btn_primary_active":"#1976D2",
-    "btn_secondary_bg":  "#9E9E9E",
+    "btn_primary_active":"#357ABD",
+    "btn_secondary_bg":  "#a0aec0",
     "btn_secondary_fg":  "#ffffff",
-    "btn_secondary_active":"#757575",
-    "btn_success_bg":    "#4CAF50",
-    "btn_warn_bg":       "#FF9800",
-    "btn_danger_bg":     "#F44336",
+    "btn_secondary_active":"#718096",
+    "btn_success_bg":    "#48BB78",
+    "btn_warn_bg":       "#ED8936",
+    "btn_danger_bg":     "#FC5A5A",
 
     # Status / scoring (kept consistent across both themes for clarity)
-    "status_success":    "#4CAF50",
-    "status_warning":    "#FF9800",
-    "status_danger":     "#F44336",
-    "status_yellow":     "#F9A825",
-    "status_orange":     "#FB8C00",
-    "status_neutral":    "#666666",
+    "status_success":    "#48BB78",
+    "status_warning":    "#ED8936",
+    "status_danger":     "#FC5A5A",
+    "status_yellow":     "#ECC94B",
+    "status_orange":     "#ED8936",
+    "status_neutral":    "#718096",
 
-    "score_weak":        "#F44336",
-    "score_moderate":    "#FF9800",
-    "score_strong":      "#4CAF50",
+    "score_weak":        "#FC5A5A",
+    "score_moderate":    "#ED8936",
+    "score_strong":      "#48BB78",
 
     # Card overrides used by main-menu account cards
-    "card_bg":           "#f9f9f9",
-    "card_inner_bg":     "#ffffff",
-    "card_label_fg":     "#202124",
+    "card_bg":           "#ffffff",
+    "card_inner_bg":     "#f8f9fa",
+    "card_label_fg":     "#4a5568",
+    "card_shadow":       "#e2e8f0",
 }
 
 DARK_THEME: Dict[str, str] = {
     # Surfaces
-    "app_bg":            "#23272a",
-    "surface_bg":        "#2c2f33",
-    "surface_alt_bg":    "#23272a",
-    "header_bg":         "#2c2f33",
-    "section_bg":        "#2c2f33",
-    "section_border":    "#7289da",
+    "app_bg":            "#1e1e2e",  # deep navy (soft on eyes)
+    "surface_bg":        "#27273a",  # slightly lighter navy for panels
+    "surface_alt_bg":    "#1e1e2e",
+    "header_bg":         "#27273a",
+    "sidebar_bg":        "#181825",  # darkest layer for sidebar
+    "sidebar_hover":     "#2a2a3d",  # sidebar item hover
+    "sidebar_active":    "#4A90D9",  # active sidebar item bg
+    "sidebar_fg":        "#a6adc8",  # sidebar icon/text color
+    "sidebar_active_fg": "#ffffff",  # active sidebar item text
+    "section_bg":        "#27273a",
+    "section_border":    "#6c81cc",
 
-    # Text
-    "text_primary":      "#ffffff",
-    "text_secondary":    "#bbbbbb",
-    "text_muted":        "#888888",
-    "text_inverse":      "#ffffff",
-
-    # Accent + brand
-    "accent":            "#7289da",
+    # Accent + brand (slightly muted premium blue)
+    "accent":            "#6c81cc",
     "accent_active":     "#5a6fb5",
-    "logo_accent":       "#7289da",
+    "logo_accent":       "#6c81cc",
 
     # Inputs
-    "input_bg":          "#2c2f33",
-    "input_fg":          "#ffffff",
-    "input_caret":       "#ffffff",
-    "input_border":      "#444444",
+    "input_bg":          "#2a2a3d",
+    "input_fg":          "#cdd6f4",
+    "input_caret":       "#cdd6f4",
+    "input_border":      "#45475a",
+    "input_focus_border":"#6c81cc",
+
+    # Text
+    "text_primary":      "#cdd6f4",
+    "text_secondary":    "#a6adc8",
+    "text_muted":        "#6c7086",
+    "text_inverse":      "#1e1e2e",
 
     # Buttons
-    "btn_primary_bg":    "#2196F3",
+    "btn_primary_bg":    "#4A90D9",
     "btn_primary_fg":    "#ffffff",
-    "btn_primary_active":"#1976D2",
-    "btn_secondary_bg":  "#4f545c",
-    "btn_secondary_fg":  "#ffffff",
-    "btn_secondary_active":"#3a3d42",
-    "btn_success_bg":    "#43b581",
-    "btn_warn_bg":       "#FF9800",
-    "btn_danger_bg":     "#F44336",
+    "btn_primary_active":"#357ABD",
+    "btn_secondary_bg":  "#45475a",
+    "btn_secondary_fg":  "#cdd6f4",
+    "btn_secondary_active":"#313244",
+    "btn_success_bg":    "#a6e3a1",
+    "btn_warn_bg":       "#fab387",
+    "btn_danger_bg":     "#f38ba8",
 
     # Status / scoring
-    "status_success":    "#4CAF50",
-    "status_warning":    "#FF9800",
-    "status_danger":     "#F44336",
-    "status_yellow":     "#F9A825",
-    "status_orange":     "#FB8C00",
-    "status_neutral":    "#bbbbbb",
+    "status_success":    "#a6e3a1",
+    "status_warning":    "#fab387",
+    "status_danger":     "#f38ba8",
+    "status_yellow":     "#f9e2af",
+    "status_orange":     "#fab387",
+    "status_neutral":    "#a6adc8",
 
-    "score_weak":        "#F44336",
-    "score_moderate":    "#FF9800",
-    "score_strong":      "#4CAF50",
+    "score_weak":        "#f38ba8",
+    "score_moderate":    "#fab387",
+    "score_strong":      "#a6e3a1",
 
     # Card overrides
-    "card_bg":           "#2c2f33",
-    "card_inner_bg":     "#23272a",
-    "card_label_fg":     "#ffffff",
+    "card_bg":           "#27273a",
+    "card_inner_bg":     "#2a2a3d",
+    "card_label_fg":     "#a6adc8",
+    "card_shadow":       "#181825",
 }
 
 THEMES: Dict[str, Dict[str, str]] = {
@@ -469,6 +483,7 @@ class ThemeController:
             "relief": tk.FLAT,
             "highlightthickness": 1,
             "highlightbackground": self["input_border"],
+            "highlightcolor": self.color("input_focus_border", self["accent"]),
         }
 
     def text_style(self) -> dict:
@@ -476,7 +491,7 @@ class ThemeController:
 
     def primary_button_style(self) -> dict:
         return {
-            "font": ("Arial", 12, "bold"),
+            "font": ("Segoe UI", 11, "bold"),
             "bg": self["btn_primary_bg"],
             "fg": self["btn_primary_fg"],
             "activebackground": self["btn_primary_active"],
@@ -490,7 +505,7 @@ class ThemeController:
 
     def secondary_button_style(self) -> dict:
         return {
-            "font": ("Arial", 11),
+            "font": ("Segoe UI", 11),
             "bg": self["btn_secondary_bg"],
             "fg": self["btn_secondary_fg"],
             "activebackground": self["btn_secondary_active"],

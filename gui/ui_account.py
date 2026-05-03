@@ -40,7 +40,7 @@ class AccountWindow(tk.Toplevel):
         else:
             self.title("Edit Account - BlueVault")
 
-        self.geometry("500x620")
+        self.geometry("520x660")
         self.resizable(False, False)
         self.configure(bg=theme["app_bg"])
 
@@ -119,35 +119,37 @@ class AccountWindow(tk.Toplevel):
         tk.Label(
             self,
             text=title_text,
-            font=("Arial", 18, "bold"),
+            font=("Segoe UI", 17, "bold"),
             bg=theme["app_bg"],
             fg=theme["accent"],
-        ).pack(pady=16)
+        ).pack(pady=(20, 4))
 
-        # Form frame
+        # Thin accent divider
+        tk.Frame(self, bg=theme["accent"], height=2).pack(fill=tk.X, padx=40)
+
+        # Scrollable form area
         form_frame = tk.Frame(
             self,
             bg=theme["app_bg"],
-            highlightbackground=theme["section_border"],
-            highlightthickness=2,
-            bd=0,
         )
-        form_frame.pack(pady=10, padx=40, fill=tk.BOTH, expand=True)
+        form_frame.pack(pady=14, padx=40, fill=tk.BOTH, expand=True)
 
         # Account Name (Required)
-        self._field_label(form_frame, "Account Name: *", row=0)
+        self._field_label(form_frame, "Account Name *", row=0)
         self.account_name_entry = tk.Entry(
-            form_frame, font=("Arial", 11), width=40, **theme.entry_style()
+            form_frame, font=("Segoe UI", 11), width=40, **theme.entry_style()
         )
-        self.account_name_entry.grid(row=1, column=0, pady=(0, 15))
+        self.account_name_entry.grid(row=1, column=0, pady=(0, 16), sticky="ew")
         self.account_name_entry.focus()
+        self._bind_focus_highlight(self.account_name_entry)
 
         # Username (Required)
-        self._field_label(form_frame, "Username/Email: *", row=2)
+        self._field_label(form_frame, "Username / Email *", row=2)
         self.username_entry = tk.Entry(
-            form_frame, font=("Arial", 11), width=40, **theme.entry_style()
+            form_frame, font=("Segoe UI", 11), width=40, **theme.entry_style()
         )
-        self.username_entry.grid(row=3, column=0, pady=(0, 15))
+        self.username_entry.grid(row=3, column=0, pady=(0, 16), sticky="ew")
+        self._bind_focus_highlight(self.username_entry)
 
         # Password (Required)
         password_label_frame = tk.Frame(form_frame, bg=theme["app_bg"])
@@ -155,115 +157,119 @@ class AccountWindow(tk.Toplevel):
 
         tk.Label(
             password_label_frame,
-            text="Password: *",
-            font=("Arial", 11, "bold"),
+            text="Password *",
+            font=("Segoe UI", 10, "bold"),
             bg=theme["app_bg"],
             fg=theme["text_primary"],
         ).pack(side=tk.LEFT)
 
-        # Strength-requirement hint next to the label
         if self.settings_manager is not None:
             req = self.settings_manager.get_password_strength_requirement()
             if req and req.lower() != "off":
                 tk.Label(
                     password_label_frame,
                     text=f"  (min: {req.capitalize()})",
-                    font=("Arial", 9, "italic"),
+                    font=("Segoe UI", 8, "italic"),
                     bg=theme["app_bg"],
                     fg=theme["text_muted"],
                 ).pack(side=tk.LEFT)
 
-        # Password entry with show/hide and generate button
         password_container = tk.Frame(form_frame, bg=theme["app_bg"])
-        password_container.grid(row=5, column=0, pady=(0, 15))
+        password_container.grid(row=5, column=0, pady=(0, 16), sticky="ew")
 
         self.password_entry = tk.Entry(
             password_container,
-            font=("Arial", 11),
+            font=("Segoe UI", 11),
             width=26,
             show="*",
             **theme.entry_style(),
         )
-        self.password_entry.pack(side=tk.LEFT, padx=(0, 5))
+        self.password_entry.pack(side=tk.LEFT, padx=(0, 6))
+        self._bind_focus_highlight(self.password_entry)
 
         gen_btn_style = theme.primary_button_style()
-        gen_btn_style.update(font=("Arial", 9, "bold"), padx=5)
+        gen_btn_style.update(font=("Segoe UI", 9, "bold"), padx=8, pady=2)
         tk.Button(
             password_container,
             text="🔑 Generate",
             command=self.generate_password,
             **gen_btn_style,
-        ).pack(side=tk.LEFT, padx=(0, 5))
+        ).pack(side=tk.LEFT, padx=(0, 6))
 
-        # ``master=self`` ensures this var is bound to THIS Toplevel's Tk
-        # root, not the (potentially-different) default root. Important
-        # when the app keeps multiple Tk roots alive simultaneously
-        # (LoginWindow + MainMenu).
         self.show_password_var = tk.BooleanVar(master=self, value=False)
         self.show_password_checkbox = tk.Checkbutton(
             password_container,
             text="Show",
             variable=self.show_password_var,
             command=self.toggle_password,
-            font=("Arial", 9),
+            font=("Segoe UI", 9),
             **theme.checkbutton_style(on="app_bg"),
         )
         self.show_password_checkbox.pack(side=tk.LEFT)
 
         # Website URL (Optional)
-        self._field_label(form_frame, "Website URL: (optional)", row=6, bold=False)
+        self._field_label(form_frame, "Website URL  (optional)", row=6, bold=False)
         self.website_entry = tk.Entry(
-            form_frame, font=("Arial", 11), width=40, **theme.entry_style()
+            form_frame, font=("Segoe UI", 11), width=40, **theme.entry_style()
         )
-        self.website_entry.grid(row=7, column=0, pady=(0, 15))
+        self.website_entry.grid(row=7, column=0, pady=(0, 16), sticky="ew")
+        self._bind_focus_highlight(self.website_entry)
 
         # Notes (Optional)
-        self._field_label(form_frame, "Notes: (optional)", row=8, bold=False)
+        self._field_label(form_frame, "Notes  (optional)", row=8, bold=False)
         self.notes_text = tk.Text(
             form_frame,
-            font=("Arial", 10),
+            font=("Segoe UI", 10),
             width=40,
-            height=5,
+            height=4,
             wrap=tk.WORD,
             **theme.text_style(),
         )
-        self.notes_text.grid(row=9, column=0, pady=(0, 15))
+        self.notes_text.grid(row=9, column=0, pady=(0, 10), sticky="ew")
 
-        # Required fields note
         tk.Label(
             form_frame,
-            text="* Required fields",
-            font=("Arial", 9, "italic"),
+            text="* Required",
+            font=("Segoe UI", 8, "italic"),
             bg=theme["app_bg"],
             fg=theme["text_muted"],
         ).grid(row=10, column=0, sticky="w")
 
-        # Buttons frame
-        button_frame = tk.Frame(self, bg=theme["app_bg"])
-        button_frame.pack(pady=20)
-
-        save_style = theme.primary_button_style()
-        save_style.update(font=("Arial", 12, "bold"), width=12, height=2)
+        # ── Bottom-right action buttons ─────────────────────────────────
+        btn_strip = tk.Frame(self, bg=theme["app_bg"])
+        btn_strip.pack(fill=tk.X, padx=40, pady=(8, 18))
 
         cancel_style = theme.secondary_button_style()
-        cancel_style.update(font=("Arial", 12), width=12, height=2)
+        cancel_style.update(font=("Segoe UI", 10), padx=16, pady=6)
+
+        save_style = theme.primary_button_style()
+        save_style.update(font=("Segoe UI", 10, "bold"), padx=16, pady=6)
 
         tk.Button(
-            button_frame,
-            text="Save",
-            command=self.save_account,
-            **save_style,
-        ).pack(side=tk.LEFT, padx=10)
-
-        tk.Button(
-            button_frame,
+            btn_strip,
             text="Cancel",
             command=self.destroy,
             **cancel_style,
-        ).pack(side=tk.LEFT, padx=10)
+        ).pack(side=tk.RIGHT, padx=(6, 0))
+
+        tk.Button(
+            btn_strip,
+            text="Save",
+            command=self.save_account,
+            **save_style,
+        ).pack(side=tk.RIGHT)
+
+    def _bind_focus_highlight(self, entry):
+        """Make entry border glow accent color on focus."""
+        border_normal = theme["input_border"]
+        border_focus  = theme.color("input_focus_border", theme["accent"])
+        entry.bind("<FocusIn>",  lambda e: entry.config(
+            highlightbackground=border_focus, highlightcolor=border_focus))
+        entry.bind("<FocusOut>", lambda e: entry.config(
+            highlightbackground=border_normal, highlightcolor=border_focus))
 
     def _field_label(self, parent, text, row, bold=True):
-        font = ("Arial", 11, "bold") if bold else ("Arial", 11)
+        font = ("Segoe UI", 10, "bold") if bold else ("Segoe UI", 10)
         tk.Label(
             parent,
             text=text,
@@ -271,7 +277,7 @@ class AccountWindow(tk.Toplevel):
             bg=theme["app_bg"],
             fg=theme["text_primary"],
             anchor="w",
-        ).grid(row=row, column=0, sticky="w", pady=(0, 5))
+        ).grid(row=row, column=0, sticky="w", pady=(0, 4))
 
     def toggle_password(self):
         """Toggle password visibility."""

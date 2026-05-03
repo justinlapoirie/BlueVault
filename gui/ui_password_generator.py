@@ -62,23 +62,24 @@ class PasswordGeneratorApp(tk.Toplevel):
     # ------------------------------------------------------------------
     def create_widgets(self):
         # Title
-        title_label = tk.Label(
+        tk.Label(
             self,
             text="Password Generator",
-            font=("Arial", 18, "bold"),
+            font=("Segoe UI", 17, "bold"),
             bg=theme["app_bg"],
             fg=theme["accent"],
-        )
-        title_label.pack(pady=16)
+        ).pack(pady=16)
 
-        # Frame for password length
+        tk.Frame(self, bg=theme["accent"], height=2).pack(fill=tk.X, padx=30)
+
+        # Length row
         length_frame = tk.Frame(self, bg=theme["app_bg"])
-        length_frame.pack(pady=10)
+        length_frame.pack(pady=14)
 
         tk.Label(
             length_frame,
             text="Password Length:",
-            font=("Arial", 11),
+            font=("Segoe UI", 11),
             bg=theme["app_bg"],
             fg=theme["text_primary"],
         ).pack(side=tk.LEFT, padx=5)
@@ -86,75 +87,79 @@ class PasswordGeneratorApp(tk.Toplevel):
         length_entry = tk.Entry(
             length_frame,
             textvariable=self.length_var,
-            width=10,
+            font=("Segoe UI", 11),
+            width=8,
             **theme.entry_style(),
         )
         length_entry.pack(side=tk.LEFT, padx=5)
 
-        # Frame for character type options
+        # Character type options
         options_frame = tk.LabelFrame(
             self,
-            text="Include Character Types",
-            font=("Arial", 11),
+            text="Character Types",
+            font=("Segoe UI", 10, "bold"),
             padx=20,
             pady=10,
             **theme.labelframe_style(on="app_bg"),
         )
-        options_frame.pack(pady=15, padx=20, fill=tk.BOTH)
+        options_frame.pack(pady=12, padx=30, fill=tk.BOTH)
 
         check_style = theme.checkbutton_style(on="app_bg")
-
         for text, var in (
-            ("Uppercase (A-Z)", self.uppercase_var),
-            ("Lowercase (a-z)", self.lowercase_var),
-            ("Digits (0-9)", self.digits_var),
-            ("Symbols (!@#$...)", self.symbols_var),
+            ("Uppercase  (A–Z)", self.uppercase_var),
+            ("Lowercase  (a–z)", self.lowercase_var),
+            ("Digits  (0–9)",    self.digits_var),
+            ("Symbols  (!@#$…)", self.symbols_var),
         ):
             tk.Checkbutton(
                 options_frame,
                 text=text,
                 variable=var,
-                font=("Arial", 10),
+                font=("Segoe UI", 10),
                 **check_style,
-            ).pack(anchor=tk.W, pady=2)
+            ).pack(anchor=tk.W, pady=3)
 
         # Generate button
         gen_style = theme.primary_button_style()
-        gen_style.update(padx=20, pady=10)
+        gen_style.update(padx=24, pady=8)
         self.generate_button = tk.Button(
             self,
             text="Generate Password",
             command=self.on_button_click,
             **gen_style,
         )
-        self.generate_button.pack(pady=15)
+        self.generate_button.pack(pady=14)
 
-        # Frame for displaying password
-        password_frame = tk.Frame(self, bg=theme["app_bg"])
-        password_frame.pack(pady=10, padx=20, fill=tk.BOTH)
+        # Password display
+        pw_frame = tk.Frame(self, bg=theme["surface_bg"],
+                            highlightbackground=theme["section_border"],
+                            highlightthickness=1)
+        pw_frame.pack(pady=6, padx=30, fill=tk.X)
 
         self.password_label = tk.Label(
-            password_frame,
+            pw_frame,
             text="",
-            font=("Courier", 12, "bold"),
-            bg=theme["app_bg"],
+            font=("Consolas", 13, "bold"),
+            bg=theme["surface_bg"],
             fg=theme["accent"],
-            wraplength=400,
+            wraplength=380,
             justify=tk.CENTER,
+            pady=12,
         )
-        self.password_label.pack(pady=10)
+        self.password_label.pack()
 
         # Copy button
         copy_style = theme.secondary_button_style()
-        copy_style["font"] = ("Arial", 10)
+        copy_style["font"] = ("Segoe UI", 10)
         self.copy_button = tk.Button(
-            password_frame,
+            self,
             text="Copy to Clipboard",
             command=self.copy_to_clipboard,
             state=tk.DISABLED,
             **copy_style,
         )
-        self.copy_button.pack(pady=5)
+        self.copy_button.pack(pady=8)
+
 
     def on_button_click(self):
         """Generate password using the class-based generator."""

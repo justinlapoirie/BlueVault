@@ -73,30 +73,51 @@ class LoginWindow(tk.Tk):
         self.clear_window()
         self.configure(bg=theme["app_bg"])
 
-        # Center frame for all content
         center_frame = tk.Frame(self, bg=theme["app_bg"])
         center_frame.pack(expand=True)
 
-        # Logo (place logo.png in gui/)
+        # Logo
         try:
             from tkinter import PhotoImage
             logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
             if os.path.exists(logo_path):
                 self.logo_img = PhotoImage(file=logo_path)
-                logo_label = tk.Label(center_frame, image=self.logo_img, bg=theme["app_bg"])
-                logo_label.pack(pady=(20, 10))
+                tk.Label(center_frame, image=self.logo_img,
+                         bg=theme["app_bg"]).pack(pady=(20, 6))
             else:
-                tk.Label(center_frame, text="", bg=theme["app_bg"]).pack(pady=(20, 10))
+                tk.Label(center_frame, text="", bg=theme["app_bg"]).pack(pady=(20, 6))
         except Exception:
-            tk.Label(center_frame, text="", bg=theme["app_bg"]).pack(pady=(20, 10))
+            tk.Label(center_frame, text="", bg=theme["app_bg"]).pack(pady=(20, 6))
 
-        button_style = self._initial_button_style()
+        tk.Label(
+            center_frame,
+            text="BlueVault",
+            font=("Segoe UI", 22, "bold"),
+            bg=theme["app_bg"],
+            fg=theme["accent"],
+        ).pack()
 
-        login_btn = tk.Button(center_frame, text="LOG IN", command=self.show_login_screen, **button_style)
-        login_btn.pack(pady=(10, 10), ipady=6, ipadx=6)
+        tk.Label(
+            center_frame,
+            text="Your secure password manager",
+            font=("Segoe UI", 10),
+            bg=theme["app_bg"],
+            fg=theme["text_muted"],
+        ).pack(pady=(2, 24))
 
-        create_btn = tk.Button(center_frame, text="CREATE ACCOUNT", command=self.show_create_account_screen, **button_style)
-        create_btn.pack(pady=(0, 10), ipady=6, ipadx=6)
+        btn_style = self._initial_button_style()
+
+        login_btn = tk.Button(
+            center_frame, text="Log In",
+            command=self.show_login_screen, **btn_style
+        )
+        login_btn.pack(pady=(0, 10), ipady=8, ipadx=10)
+
+        create_btn = tk.Button(
+            center_frame, text="Create Account",
+            command=self.show_create_account_screen, **btn_style
+        )
+        create_btn.pack(ipady=8, ipadx=10)
 
     def show_login_screen(self):
         """Show the login screen."""
@@ -104,73 +125,85 @@ class LoginWindow(tk.Tk):
         self.clear_window()
         self.configure(bg=theme["app_bg"])
 
-        # Center frame for all content
         center_frame = tk.Frame(self, bg=theme["app_bg"])
         center_frame.pack(expand=True)
 
-        # Form frame with border for focus
-        form_frame = tk.Frame(
+        # Card panel
+        card = tk.Frame(
             center_frame,
-            bg=theme["app_bg"],
+            bg=theme["surface_bg"],
             highlightbackground=theme["section_border"],
-            highlightthickness=2,
+            highlightthickness=1,
             bd=0,
         )
-        form_frame.pack(pady=30, padx=20)
+        card.pack(pady=20, padx=30, ipadx=20, ipady=20)
 
-        # Title
         tk.Label(
-            form_frame,
-            text="Login to BlueVault",
-            font=("Arial", 20, "bold"),
-            bg=theme["app_bg"],
+            card,
+            text="Welcome Back",
+            font=("Segoe UI", 20, "bold"),
+            bg=theme["surface_bg"],
             fg=theme["accent"],
-        ).grid(row=0, column=0, columnspan=2, pady=(10, 20))
+        ).grid(row=0, column=0, columnspan=2, pady=(20, 4))
+
+        tk.Label(
+            card,
+            text="Sign in to your vault",
+            font=("Segoe UI", 10),
+            bg=theme["surface_bg"],
+            fg=theme["text_muted"],
+        ).grid(row=1, column=0, columnspan=2, pady=(0, 20))
 
         # Username
         tk.Label(
-            form_frame,
-            text="Username:",
-            font=("Arial", 12),
-            bg=theme["app_bg"],
-            fg=theme["text_primary"],
-        ).grid(row=1, column=0, sticky="e", padx=10, pady=10)
+            card,
+            text="Username",
+            font=("Segoe UI", 10, "bold"),
+            bg=theme["surface_bg"],
+            fg=theme["text_secondary"],
+        ).grid(row=2, column=0, sticky="w", padx=14, pady=(0, 4))
 
         self.login_username_entry = tk.Entry(
-            form_frame, font=("Arial", 12), width=25, **theme.entry_style()
+            card, font=("Segoe UI", 12), width=26, **theme.entry_style()
         )
-        self.login_username_entry.grid(row=1, column=1, padx=10, pady=10)
+        self.login_username_entry.grid(row=3, column=0, columnspan=2,
+                                       padx=14, pady=(0, 14), sticky="ew")
         self.login_username_entry.focus()
 
         # Password
         tk.Label(
-            form_frame,
-            text="Password:",
-            font=("Arial", 12),
-            bg=theme["app_bg"],
-            fg=theme["text_primary"],
-        ).grid(row=2, column=0, sticky="e", padx=10, pady=10)
+            card,
+            text="Master Password",
+            font=("Segoe UI", 10, "bold"),
+            bg=theme["surface_bg"],
+            fg=theme["text_secondary"],
+        ).grid(row=4, column=0, sticky="w", padx=14, pady=(0, 4))
 
         self.login_password_entry = tk.Entry(
-            form_frame, font=("Arial", 12), width=25, show="*", **theme.entry_style()
+            card, font=("Segoe UI", 12), width=26, show="*", **theme.entry_style()
         )
-        self.login_password_entry.grid(row=2, column=1, padx=10, pady=10)
+        self.login_password_entry.grid(row=5, column=0, columnspan=2,
+                                       padx=14, pady=(0, 20), sticky="ew")
 
-        # Bind Enter key to login
-        self.login_username_entry.bind("<Return>", lambda e: self.login_password_entry.focus())
+        self.login_username_entry.bind("<Return>",
+                                       lambda e: self.login_password_entry.focus())
         self.login_password_entry.bind("<Return>", lambda e: self.handle_login())
 
-        button_style = self._form_button_style()
+        # Buttons (right-aligned)
+        btn_row = tk.Frame(card, bg=theme["surface_bg"])
+        btn_row.grid(row=6, column=0, columnspan=2,
+                     padx=14, pady=(0, 20), sticky="e")
 
-        # Buttons frame
-        button_frame = tk.Frame(form_frame, bg=theme["app_bg"])
-        button_frame.grid(row=3, column=0, columnspan=2, pady=(20, 10))
+        back_style = theme.secondary_button_style()
+        back_style.update(font=("Segoe UI", 10), padx=14, pady=6)
+        tk.Button(btn_row, text="Back",
+                  command=self.show_initial_screen, **back_style).pack(
+            side=tk.LEFT, padx=(0, 8))
 
-        login_btn = tk.Button(button_frame, text="Log In", command=self.handle_login, **button_style)
-        login_btn.pack(side=tk.LEFT, padx=8, ipady=4, ipadx=4)
-
-        back_btn = tk.Button(button_frame, text="Back", command=self.show_initial_screen, **button_style)
-        back_btn.pack(side=tk.LEFT, padx=8, ipady=4, ipadx=4)
+        login_style = theme.primary_button_style()
+        login_style.update(font=("Segoe UI", 10, "bold"), padx=14, pady=6)
+        tk.Button(btn_row, text="Log In",
+                  command=self.handle_login, **login_style).pack(side=tk.LEFT)
 
     def show_create_account_screen(self):
         """Show the create account screen."""
@@ -178,79 +211,83 @@ class LoginWindow(tk.Tk):
         self.clear_window()
         self.configure(bg=theme["app_bg"])
 
-        # Center frame for all content
         center_frame = tk.Frame(self, bg=theme["app_bg"])
         center_frame.pack(expand=True)
 
-        # Form frame with border for focus
-        form_frame = tk.Frame(
+        card = tk.Frame(
             center_frame,
-            bg=theme["app_bg"],
+            bg=theme["surface_bg"],
             highlightbackground=theme["section_border"],
-            highlightthickness=2,
+            highlightthickness=1,
             bd=0,
         )
-        form_frame.pack(pady=30, padx=20)
+        card.pack(pady=20, padx=30, ipadx=20, ipady=10)
 
-        # Title
         tk.Label(
-            form_frame,
-            text="Create New Account",
-            font=("Arial", 20, "bold"),
-            bg=theme["app_bg"],
+            card,
+            text="Create Account",
+            font=("Segoe UI", 20, "bold"),
+            bg=theme["surface_bg"],
             fg=theme["accent"],
-        ).grid(row=0, column=0, columnspan=2, pady=(10, 20))
+        ).grid(row=0, column=0, columnspan=2, pady=(20, 18))
 
-        # Fields
         fields = [
-            ("Username:", "create_username_entry", False),
-            ("Email:",    "create_email_entry",    False),
-            ("Password:", "create_password_entry", True),
-            ("Confirm Password:", "create_confirm_password_entry", True),
+            ("Username",         "create_username_entry",        False),
+            ("Email",            "create_email_entry",           False),
+            ("Master Password",  "create_password_entry",        True),
+            ("Confirm Password", "create_confirm_password_entry", True),
         ]
         for r, (label_text, attr, hide) in enumerate(fields, start=1):
             tk.Label(
-                form_frame,
+                card,
                 text=label_text,
-                font=("Arial", 12),
-                bg=theme["app_bg"],
-                fg=theme["text_primary"],
-            ).grid(row=r, column=0, sticky="e", padx=10, pady=10)
+                font=("Segoe UI", 10, "bold"),
+                bg=theme["surface_bg"],
+                fg=theme["text_secondary"],
+            ).grid(row=(r - 1) * 2 + 1, column=0, sticky="w",
+                   padx=14, pady=(0, 4))
 
             entry_kwargs = dict(theme.entry_style())
-            entry_kwargs.update(font=("Arial", 12), width=25)
+            entry_kwargs.update(font=("Segoe UI", 11), width=26)
             if hide:
                 entry_kwargs["show"] = "*"
-            entry = tk.Entry(form_frame, **entry_kwargs)
-            entry.grid(row=r, column=1, padx=10, pady=10)
+            entry = tk.Entry(card, **entry_kwargs)
+            entry.grid(row=(r - 1) * 2 + 2, column=0, columnspan=2,
+                       padx=14, pady=(0, 14), sticky="ew")
             setattr(self, attr, entry)
 
         self.create_username_entry.focus()
+        self.create_username_entry.bind("<Return>",
+            lambda e: self.create_email_entry.focus())
+        self.create_email_entry.bind("<Return>",
+            lambda e: self.create_password_entry.focus())
+        self.create_password_entry.bind("<Return>",
+            lambda e: self.create_confirm_password_entry.focus())
+        self.create_confirm_password_entry.bind("<Return>",
+            lambda e: self.handle_create_account())
 
-        # Bind Enter key navigation
-        self.create_username_entry.bind("<Return>", lambda e: self.create_email_entry.focus())
-        self.create_email_entry.bind("<Return>", lambda e: self.create_password_entry.focus())
-        self.create_password_entry.bind("<Return>", lambda e: self.create_confirm_password_entry.focus())
-        self.create_confirm_password_entry.bind("<Return>", lambda e: self.handle_create_account())
+        btn_row = tk.Frame(card, bg=theme["surface_bg"])
+        btn_row.grid(row=9, column=0, columnspan=2,
+                     padx=14, pady=(0, 20), sticky="e")
 
-        button_style = self._form_button_style()
+        back_style = theme.secondary_button_style()
+        back_style.update(font=("Segoe UI", 10), padx=14, pady=6)
+        tk.Button(btn_row, text="Back",
+                  command=self.show_initial_screen, **back_style).pack(
+            side=tk.LEFT, padx=(0, 8))
 
-        # Buttons frame
-        button_frame = tk.Frame(form_frame, bg=theme["app_bg"])
-        button_frame.grid(row=5, column=0, columnspan=2, pady=(20, 10))
-
-        create_btn = tk.Button(button_frame, text="Create Account", command=self.handle_create_account, **button_style)
-        create_btn.pack(side=tk.LEFT, padx=8, ipady=4, ipadx=4)
-
-        back_btn = tk.Button(button_frame, text="Back", command=self.show_initial_screen, **button_style)
-        back_btn.pack(side=tk.LEFT, padx=8, ipady=4, ipadx=4)
+        create_style = theme.primary_button_style()
+        create_style.update(font=("Segoe UI", 10, "bold"), padx=14, pady=6)
+        tk.Button(btn_row, text="Create Account",
+                  command=self.handle_create_account, **create_style).pack(
+            side=tk.LEFT)
 
     # ------------------------------------------------------------------
     # Button style helpers
     # ------------------------------------------------------------------
     def _initial_button_style(self) -> dict:
         return {
-            "font": ("Arial", 14, "bold"),
+            "font": ("Segoe UI", 13, "bold"),
             "width": 20,
             "bg": theme["btn_primary_bg"],
             "fg": theme["btn_primary_fg"],
@@ -267,7 +304,7 @@ class LoginWindow(tk.Tk):
 
     def _form_button_style(self) -> dict:
         style = self._initial_button_style()
-        style["font"] = ("Arial", 13, "bold")
+        style["font"] = ("Segoe UI", 12, "bold")
         style["width"] = 15
         return style
 
@@ -279,12 +316,11 @@ class LoginWindow(tk.Tk):
         username = self.login_username_entry.get().strip()
         password = self.login_password_entry.get()
 
-        # Verify credentials
         success, message = self.login_manager.verify_login(username, password)
 
         if success:
             self.logged_in_username = username
-            self.master_password = password  # Store for encryption key
+            self.master_password = password
             messagebox.showinfo("Success", f"Welcome back, {username}!")
             self.open_main_menu()
         else:

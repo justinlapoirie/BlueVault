@@ -129,7 +129,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             self,
             text="Settings",
-            font=("Arial", 20, "bold"),
+            font=("Segoe UI", 20, "bold"),
             bg=theme["app_bg"],
             fg=theme["accent"],
         ).pack(pady=(18, 6))
@@ -137,7 +137,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             self,
             text=f"Logged in as: {self.username}",
-            font=("Arial", 10, "italic"),
+            font=("Segoe UI", 10, "italic"),
             bg=theme["app_bg"],
             fg=theme["text_secondary"],
         ).pack(pady=(0, 10))
@@ -171,7 +171,7 @@ class SettingsWindow(tk.Toplevel):
         action_bar.pack(fill=tk.X, padx=16, pady=(6, 16))
 
         save_style = theme.success_button_style()
-        save_style.update(font=("Arial", 12, "bold"), width=16)
+        save_style.update(font=("Segoe UI", 12, "bold"), width=16)
         tk.Button(
             action_bar,
             text="Save Settings",
@@ -180,7 +180,7 @@ class SettingsWindow(tk.Toplevel):
         ).pack(side=tk.RIGHT, padx=(6, 0))
 
         close_style = theme.secondary_button_style()
-        close_style.update(font=("Arial", 12), width=10)
+        close_style.update(font=("Segoe UI", 12), width=10)
         tk.Button(
             action_bar,
             text="Close",
@@ -226,7 +226,7 @@ class SettingsWindow(tk.Toplevel):
         import_row.pack(fill=tk.X, padx=14, pady=(0, 6))
 
         import_btn_style = theme.primary_button_style()
-        import_btn_style.update(font=("Arial", 10, "bold"), padx=10)
+        import_btn_style.update(font=("Segoe UI", 10, "bold"), padx=10)
         tk.Button(
             import_row,
             text="Import Theme...",
@@ -237,7 +237,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             import_row,
             text="(.json palette file)",
-            font=("Arial", 9, "italic"),
+            font=("Segoe UI", 9, "italic"),
             bg=theme["section_bg"],
             fg=theme["text_secondary"],
         ).pack(side=tk.LEFT, padx=(8, 0))
@@ -250,7 +250,7 @@ class SettingsWindow(tk.Toplevel):
                 'a top-level "name" and a "palette" object mapping color '
                 "roles to hex strings (e.g. \"app_bg\": \"#1a1a1a\")."
             ),
-            font=("Arial", 9),
+            font=("Segoe UI", 9),
             bg=theme["section_bg"],
             fg=theme["text_secondary"],
             wraplength=560,
@@ -419,7 +419,7 @@ class SettingsWindow(tk.Toplevel):
                 "Change the master password used to log in and encrypt your "
                 "vault. Your vault will be re-encrypted with the new key."
             ),
-            font=("Arial", 9),
+            font=("Segoe UI", 9),
             bg=theme["section_bg"],
             fg=theme["text_secondary"],
             wraplength=560,
@@ -427,7 +427,7 @@ class SettingsWindow(tk.Toplevel):
         ).pack(anchor="w", padx=14, pady=(2, 6))
 
         change_style = theme.primary_button_style()
-        change_style.update(font=("Arial", 11, "bold"), width=28)
+        change_style.update(font=("Segoe UI", 11, "bold"), width=28)
         tk.Button(
             frame,
             text="Change Master Password...",
@@ -448,7 +448,7 @@ class SettingsWindow(tk.Toplevel):
                 "folder) to move it to another device, or import a previously "
                 "exported vault."
             ),
-            font=("Arial", 9),
+            font=("Segoe UI", 9),
             bg=theme["section_bg"],
             fg=theme["text_secondary"],
             wraplength=560,
@@ -459,7 +459,7 @@ class SettingsWindow(tk.Toplevel):
         row.pack(anchor="w", padx=14, pady=(0, 12))
 
         export_style = theme.success_button_style()
-        export_style.update(font=("Arial", 11, "bold"), width=18)
+        export_style.update(font=("Segoe UI", 11, "bold"), width=18)
         tk.Button(
             row,
             text="Export Vault...",
@@ -468,7 +468,7 @@ class SettingsWindow(tk.Toplevel):
         ).pack(side=tk.LEFT, padx=(0, 10))
 
         import_style = theme.warn_button_style()
-        import_style.update(font=("Arial", 11, "bold"), width=18)
+        import_style.update(font=("Segoe UI", 11, "bold"), width=18)
         tk.Button(
             row,
             text="Import Vault...",
@@ -492,7 +492,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             outer,
             text=title,
-            font=("Arial", 13, "bold"),
+            font=("Segoe UI", 13, "bold"),
             bg=theme["section_bg"],
             fg=theme["accent"],
         ).pack(anchor="w", padx=14, pady=(10, 4))
@@ -508,7 +508,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             row,
             text=label,
-            font=("Arial", 11, "bold"),
+            font=("Segoe UI", 11, "bold"),
             bg=section_bg,
             fg=theme["text_primary"],
         ).grid(row=0, column=0, sticky="w")
@@ -519,7 +519,7 @@ class SettingsWindow(tk.Toplevel):
             values=options,
             state="readonly",
             width=22,
-            font=("Arial", 10),
+            font=("Segoe UI", 10),
             style="BlueVault.TCombobox",
         )
         combo.grid(row=0, column=1, padx=(10, 0), sticky="e")
@@ -540,7 +540,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             parent,
             text=description,
-            font=("Arial", 9),
+            font=("Segoe UI", 9),
             bg=section_bg,
             fg=theme["text_secondary"],
             wraplength=560,
@@ -754,7 +754,7 @@ class SettingsWindow(tk.Toplevel):
         tk.Label(
             dlg,
             text="How would you like to import?",
-            font=("Arial", 13, "bold"),
+            font=("Segoe UI", 13, "bold"),
             bg=theme["app_bg"],
             fg=theme["text_primary"],
         ).pack(pady=(14, 4))
@@ -766,7 +766,7 @@ class SettingsWindow(tk.Toplevel):
                 "ones.\n\nAppend: keep current accounts and add only new "
                 "ones from the import (no duplicates)."
             ),
-            font=("Arial", 9),
+            font=("Segoe UI", 9),
             bg=theme["app_bg"],
             fg=theme["text_secondary"],
             wraplength=380,
@@ -783,7 +783,7 @@ class SettingsWindow(tk.Toplevel):
         btns.pack(pady=(0, 10))
 
         override_style = theme.danger_button_style()
-        override_style.update(font=("Arial", 11, "bold"), width=12)
+        override_style.update(font=("Segoe UI", 11, "bold"), width=12)
         tk.Button(
             btns,
             text="Override",
@@ -792,7 +792,7 @@ class SettingsWindow(tk.Toplevel):
         ).pack(side=tk.LEFT, padx=6)
 
         append_style = theme.success_button_style()
-        append_style.update(font=("Arial", 11, "bold"), width=12)
+        append_style.update(font=("Segoe UI", 11, "bold"), width=12)
         tk.Button(
             btns,
             text="Append",
@@ -801,7 +801,7 @@ class SettingsWindow(tk.Toplevel):
         ).pack(side=tk.LEFT, padx=6)
 
         cancel_style = theme.secondary_button_style()
-        cancel_style.update(font=("Arial", 11), width=10)
+        cancel_style.update(font=("Segoe UI", 11), width=10)
         tk.Button(
             btns,
             text="Cancel",
@@ -838,7 +838,7 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
         tk.Label(
             self,
             text="Change master password",
-            font=("Arial", 16, "bold"),
+            font=("Segoe UI", 16, "bold"),
             bg=theme["app_bg"],
             fg=theme["accent"],
         ).pack(pady=(16, 8))
@@ -850,11 +850,11 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
             tk.Label(
                 form,
                 text=text,
-                font=("Arial", 11),
+                font=("Segoe UI", 11),
                 bg=theme["app_bg"],
                 fg=theme["text_primary"],
             ).grid(row=row, column=0, sticky="e", padx=8, pady=6)
-            entry = tk.Entry(form, font=("Arial", 11), width=26, show="*",
+            entry = tk.Entry(form, font=("Segoe UI", 11), width=26, show="*",
                              **theme.entry_style())
             entry.grid(row=row, column=1, padx=8, pady=6)
             setattr(self, entry_attr, entry)
@@ -869,7 +869,7 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
             text="Show passwords",
             variable=self.show_var,
             command=self._toggle_show,
-            font=("Arial", 10),
+            font=("Segoe UI", 10),
             **theme.checkbutton_style(on="app_bg"),
         ).pack(pady=(2, 6))
 
@@ -877,12 +877,12 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
         btns.pack(pady=10)
 
         change_style = theme.success_button_style()
-        change_style.update(font=("Arial", 11, "bold"), width=16)
+        change_style.update(font=("Segoe UI", 11, "bold"), width=16)
         tk.Button(btns, text="Change Password", command=self._on_confirm,
                   **change_style).pack(side=tk.LEFT, padx=6)
 
         cancel_style = theme.secondary_button_style()
-        cancel_style.update(font=("Arial", 11), width=10)
+        cancel_style.update(font=("Segoe UI", 11), width=10)
         tk.Button(btns, text="Cancel", command=self.destroy,
                   **cancel_style).pack(side=tk.LEFT, padx=6)
 

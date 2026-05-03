@@ -58,43 +58,41 @@ class PasswordAuditorApp(tk.Toplevel):
     # ------------------------------------------------------------------
     def create_widgets(self):
         # Title
-        title_label = tk.Label(
+        tk.Label(
             self,
             text="Password Auditor",
-            font=("Arial", 18, "bold"),
+            font=("Segoe UI", 17, "bold"),
             bg=theme["app_bg"],
             fg=theme["accent"],
-        )
-        title_label.pack(pady=16)
+        ).pack(pady=16)
 
-        # Instructions
-        instructions = tk.Label(
+        tk.Frame(self, bg=theme["accent"], height=2).pack(fill=tk.X, padx=30)
+
+        tk.Label(
             self,
             text="Enter or paste a password to check its security",
-            font=("Arial", 11),
+            font=("Segoe UI", 10),
             bg=theme["app_bg"],
             fg=theme["text_secondary"],
-        )
-        instructions.pack(pady=5)
+        ).pack(pady=(10, 4))
 
-        # Frame for password input
+        # Password input frame
         input_frame = tk.LabelFrame(
             self,
             text="Password to Audit",
-            font=("Arial", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
             padx=20,
-            pady=15,
+            pady=14,
             **theme.labelframe_style(on="app_bg"),
         )
-        input_frame.pack(pady=15, padx=20, fill=tk.BOTH)
+        input_frame.pack(pady=12, padx=24, fill=tk.BOTH)
 
-        # Password entry with show/hide toggle
         entry_container = tk.Frame(input_frame, bg=theme["app_bg"])
         entry_container.pack(fill=tk.X)
 
         self.password_entry = tk.Entry(
             entry_container,
-            font=("Courier", 12),
+            font=("Consolas", 12),
             width=35,
             show="*",
             **theme.entry_style(),
@@ -102,30 +100,28 @@ class PasswordAuditorApp(tk.Toplevel):
         self.password_entry.pack(side=tk.LEFT, padx=(0, 10))
         self.password_entry.focus()
 
-        # Toggle visibility button
         self.toggle_button = tk.Checkbutton(
             entry_container,
             text="Show",
             variable=self.show_password_var,
             command=self.toggle_password_visibility,
-            font=("Arial", 9),
+            font=("Segoe UI", 9),
             **theme.checkbutton_style(on="app_bg"),
         )
         self.toggle_button.pack(side=tk.LEFT)
 
-        # Bind Enter key to audit
         self.password_entry.bind("<Return>", lambda e: self.audit_password())
 
         # Audit button
         audit_style = theme.primary_button_style()
-        audit_style.update(padx=20, pady=10)
+        audit_style.update(padx=24, pady=8)
         self.audit_button = tk.Button(
             self,
             text="Audit Password",
             command=self.audit_password,
             **audit_style,
         )
-        self.audit_button.pack(pady=15)
+        self.audit_button.pack(pady=12)
 
         # Results frame
         results_bg = theme["surface_bg"]
@@ -133,79 +129,49 @@ class PasswordAuditorApp(tk.Toplevel):
         results_frame = tk.LabelFrame(
             self,
             text="Security Analysis",
-            font=("Arial", 11, "bold"),
+            font=("Segoe UI", 10, "bold"),
             bg=results_bg,
             fg=results_fg,
             padx=20,
-            pady=15,
+            pady=14,
             highlightbackground=theme["section_border"],
         )
-        results_frame.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
+        results_frame.pack(pady=8, padx=24, fill=tk.BOTH, expand=True)
 
-        # Score display
-        score_container = tk.Frame(results_frame, bg=results_bg)
-        score_container.pack(fill=tk.X, pady=5)
-
-        tk.Label(
-            score_container,
-            text="Strength:",
-            font=("Arial", 11, "bold"),
-            bg=results_bg,
-            fg=results_fg,
-        ).pack(side=tk.LEFT)
-
-        self.score_label = tk.Label(
-            score_container,
-            text="—",
-            font=("Arial", 14, "bold"),
-            bg=results_bg,
-            fg=theme["status_neutral"],
-        )
+        # Score row
+        score_row = tk.Frame(results_frame, bg=results_bg)
+        score_row.pack(fill=tk.X, pady=4)
+        tk.Label(score_row, text="Strength:", font=("Segoe UI", 11, "bold"),
+                 bg=results_bg, fg=results_fg).pack(side=tk.LEFT)
+        self.score_label = tk.Label(score_row, text="—",
+                                    font=("Segoe UI", 13, "bold"),
+                                    bg=results_bg, fg=theme["status_neutral"])
         self.score_label.pack(side=tk.LEFT, padx=10)
 
-        # Entropy display
-        entropy_container = tk.Frame(results_frame, bg=results_bg)
-        entropy_container.pack(fill=tk.X, pady=5)
-
-        tk.Label(
-            entropy_container,
-            text="Entropy:",
-            font=("Arial", 11),
-            bg=results_bg,
-            fg=results_fg,
-        ).pack(side=tk.LEFT)
-
-        self.entropy_label = tk.Label(
-            entropy_container,
-            text="—",
-            font=("Arial", 11),
-            bg=results_bg,
-            fg=theme["status_neutral"],
-        )
+        # Entropy row
+        entropy_row = tk.Frame(results_frame, bg=results_bg)
+        entropy_row.pack(fill=tk.X, pady=4)
+        tk.Label(entropy_row, text="Entropy:", font=("Segoe UI", 10),
+                 bg=results_bg, fg=results_fg).pack(side=tk.LEFT)
+        self.entropy_label = tk.Label(entropy_row, text="—",
+                                      font=("Segoe UI", 10),
+                                      bg=results_bg, fg=theme["status_neutral"])
         self.entropy_label.pack(side=tk.LEFT, padx=10)
 
         # Breached status
-        self.breached_label = tk.Label(
-            results_frame,
-            text="",
-            font=("Arial", 11, "bold"),
-            bg=results_bg,
-            fg=results_fg,
-        )
-        self.breached_label.pack(pady=10)
+        self.breached_label = tk.Label(results_frame, text="",
+                                       font=("Segoe UI", 10, "bold"),
+                                       bg=results_bg, fg=results_fg)
+        self.breached_label.pack(pady=6)
 
-        # Warnings display (scrollable)
-        tk.Label(
-            results_frame,
-            text="Warnings & Recommendations:",
-            font=("Arial", 10, "bold"),
-            bg=results_bg,
-            fg=results_fg,
-        ).pack(anchor="w", pady=(10, 5))
+        # Warnings
+        tk.Label(results_frame, text="Warnings & Recommendations:",
+                 font=("Segoe UI", 9, "bold"),
+                 bg=results_bg, fg=results_fg).pack(anchor="w", pady=(8, 4))
 
         self.warnings_text = scrolledtext.ScrolledText(
             results_frame,
-            font=("Arial", 10),
+            font=("Segoe UI", 9),
             height=8,
             width=50,
             wrap=tk.WORD,
@@ -216,6 +182,7 @@ class PasswordAuditorApp(tk.Toplevel):
             relief=tk.FLAT,
         )
         self.warnings_text.pack(fill=tk.BOTH, expand=True)
+
 
     def toggle_password_visibility(self):
         """Toggle between showing and hiding the password."""

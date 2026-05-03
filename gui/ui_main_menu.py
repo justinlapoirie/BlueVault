@@ -75,8 +75,9 @@ class MainMenu(tk.Tk):
         for child in self.winfo_children():
             child.destroy()
         self.configure(bg=theme["app_bg"])
-        self.create_header()
-        self.create_main_content()
+        self._search_var = tk.StringVar(master=self)
+        self._search_var.trace_add("write", lambda *_: self.refresh_accounts())
+        self._create_layout()
 
     def _apply_theme(self):
         """Theme-change callback: rebuild header + content with new colors."""
@@ -90,141 +91,221 @@ class MainMenu(tk.Tk):
         if event.widget is self:
             theme.unsubscribe(self._apply_theme)
 
-    def create_header(self):
-        """Create the header with logo, user info, and action buttons."""
-        header_frame = tk.Frame(
-            self,
-            bg=theme["header_bg"],
-            height=100,
-            relief=tk.RAISED,
-            borderwidth=1,
-        )
-        header_frame.pack(fill=tk.X, padx=10, pady=10)
-        header_frame.pack_propagate(False)
+    def _create_layout(self):
+        """Build the two-pane layout: slim sidebar + content area."""
+        # ── outer container fills the whole window
+        outer = tk.Frame(self, bg=theme["app_bg"])
+        outer.pack(fill=tk.BOTH, expand=True)
 
-        # Left side - User info
-        left_frame = tk.Frame(header_frame, bg=theme["header_bg"])
-        left_frame.pack(side=tk.LEFT, padx=20, pady=10)
+        # ── LEFT SIDEBAR ────────────────────────────────────────────────
+        sidebar = tk.Frame(outer, bg=theme["sidebar_bg"], width=190)
+        sidebar.pack(side=tk.LEFT, fill=tk.Y)
+        sidebar.pack_propagate(False)
 
-        tk.Label(
-            left_frame,
-            text=f"Logged in as: {self.username}",
-            font=("Arial", 11),
-            bg=theme["header_bg"],
-            fg=theme["text_primary"],
-            anchor="w",
-        ).pack(anchor="w")
-
-        # Timer label that will be updated
-        self.timer_label = tk.Label(
-            left_frame,
-            text=self._format_time(self.time_remaining),
-            font=("Arial", 11),
-            bg=theme["header_bg"],
-            fg=theme["text_primary"],
-            anchor="w",
-        )
-        self.timer_label.pack(anchor="w", pady=(5, 0))
-
-        # Center - PNG Logo (replace 'logo.png' with your file)
+        # Logo area
+        logo_frame = tk.Frame(sidebar, bg=theme["sidebar_bg"])
+        logo_frame.pack(fill=tk.X, pady=(20, 0))
         try:
             from tkinter import PhotoImage
             logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-            self.logo_img = PhotoImage(file=logo_path)
-            logo_label = tk.Label(header_frame, image=self.logo_img, bg=theme["header_bg"])
-            logo_label.pack(side=tk.LEFT, expand=True)
+            if os.path.exists(logo_path):
+                self.logo_img = PhotoImage(file=logo_path)
+                tk.Label(logo_frame, image=self.logo_img,
+                         bg=theme["sidebar_bg"]).pack(pady=(0, 4))
         except Exception:
-            # If logo not found, show nothing (or fallback text)
-            logo_label = tk.Label(header_frame, text="", bg=theme["header_bg"])
-            logo_label.pack(side=tk.LEFT, expand=True)
-
-        # Right side - Action buttons
-        buttons_frame = tk.Frame(header_frame, bg=theme["header_bg"])
-        buttons_frame.pack(side=tk.RIGHT, padx=20, pady=10)
-
-        # All buttons use the accent button color for consistency
-        accent_color = theme["btn_primary_bg"]
-        buttons = [
-            ("+", "New Account.", self.open_new_account, accent_color),
-            ("💡", "PW Generator", self.open_password_generator, accent_color),
-            ("🔍", "PW audit.", self.open_password_auditor, accent_color),
-            ("⚙", "Settings.", self.open_settings, accent_color),
-            ("→", "Log out.", self.logout, accent_color),
-        ]
-
-        for symbol, label_text, command, color in buttons:
-            self.create_text_button(buttons_frame, symbol, label_text, command, color)
-
-    def create_text_button(self, parent, symbol, label_text, command, color):
-        """Create a text-based button with symbol and label."""
-        button_frame = tk.Frame(parent, bg=theme["header_bg"])
-        button_frame.pack(side=tk.LEFT, padx=8)
-
-        # Create button with symbol
-        btn = tk.Button(
-            button_frame,
-            text=symbol,
-            command=command,
-            font=("Arial", 20, "bold"),
-            bg=color,
-            fg=theme["btn_primary_fg"],
-            activebackground=theme["btn_primary_active"],
-            activeforeground=theme["btn_primary_fg"],
-            cursor="hand2",
-            width=3,
-            height=1,
-            relief=tk.RAISED,
-            borderwidth=2,
-        )
-        btn.pack()
-
-        # Label under button
+            pass
         tk.Label(
-            button_frame,
-            text=label_text,
-            font=("Arial", 9),
+            logo_frame,
+            text="BlueVault",
+            font=("Segoe UI", 16, "bold"),
+            bg=theme["sidebar_bg"],
+            fg=theme["accent"],
+        ).pack()
+
+        # Thin separator
+        tk.Frame(sidebar, bg=theme["sidebar_hover"], height=1).pack(
+            fill=tk.X, pady=10, padx=12
+        )
+
+        # User info + timer
+        info_frame = tk.Frame(sidebar, bg=theme["sidebar_bg"])
+        info_frame.pack(fill=tk.X, padx=14, pady=(0, 8))
+        tk.Label(
+            info_frame,
+            text=f"👤  {self.username}",
+            font=("Segoe UI", 10, "bold"),
+            bg=theme["sidebar_bg"],
+            fg=theme["sidebar_fg"],
+            anchor="w",
+        ).pack(anchor="w")
+        self.timer_label = tk.Label(
+            info_frame,
+            text=self._format_time(self.time_remaining),
+            font=("Segoe UI", 8),
+            bg=theme["sidebar_bg"],
+            fg=theme["text_muted"],
+            anchor="w",
+            wraplength=160,
+            justify="left",
+        )
+        self.timer_label.pack(anchor="w", pady=(3, 0))
+
+        tk.Frame(sidebar, bg=theme["sidebar_hover"], height=1).pack(
+            fill=tk.X, pady=8, padx=12
+        )
+
+        # Nav buttons
+        nav_items = [
+            ("＋", "New Account", self.open_new_account),
+            ("💡", "PW Generator", self.open_password_generator),
+            ("🔍", "PW Auditor",   self.open_password_auditor),
+            ("⚙",  "Settings",    self.open_settings),
+        ]
+        for icon, label, cmd in nav_items:
+            self._sidebar_button(sidebar, icon, label, cmd)
+
+        # Logout pushed to bottom
+        spacer = tk.Frame(sidebar, bg=theme["sidebar_bg"])
+        spacer.pack(fill=tk.BOTH, expand=True)
+        tk.Frame(sidebar, bg=theme["sidebar_hover"], height=1).pack(
+            fill=tk.X, pady=8, padx=12
+        )
+        self._sidebar_button(sidebar, "→", "Log Out", self.logout, danger=True)
+
+        # ── RIGHT CONTENT AREA ──────────────────────────────────────────
+        content_outer = tk.Frame(outer, bg=theme["surface_bg"])
+        content_outer.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Top bar: title + search
+        top_bar = tk.Frame(content_outer, bg=theme["header_bg"])
+        top_bar.pack(fill=tk.X, padx=0, pady=0)
+
+        tk.Label(
+            top_bar,
+            text="My Vault",
+            font=("Segoe UI", 15, "bold"),
             bg=theme["header_bg"],
             fg=theme["text_primary"],
-        ).pack(pady=(5, 0))
+        ).pack(side=tk.LEFT, padx=20, pady=14)
 
-    def create_main_content(self):
-        """Create the main content area with account cards."""
-        # Main content frame
-        content_frame = tk.Frame(
-            self,
-            bg=theme["surface_bg"],
-            relief=tk.SUNKEN,
-            borderwidth=2,
+        # Search bar
+        search_frame = tk.Frame(top_bar, bg=theme["header_bg"])
+        search_frame.pack(side=tk.RIGHT, padx=20, pady=10)
+
+        tk.Label(
+            search_frame,
+            text="🔎",
+            font=("Segoe UI", 11),
+            bg=theme["header_bg"],
+            fg=theme["text_muted"],
+        ).pack(side=tk.LEFT, padx=(0, 4))
+
+        search_entry = tk.Entry(
+            search_frame,
+            textvariable=self._search_var,
+            font=("Segoe UI", 11),
+            width=24,
+            **theme.entry_style(),
         )
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        search_entry.pack(side=tk.LEFT)
+        search_entry.insert(0, "Search accounts…")
+        search_entry.config(fg=theme["text_muted"])
 
-        # Create canvas for scrolling
+        def _search_focus_in(e):
+            if search_entry.get() == "Search accounts…":
+                search_entry.delete(0, tk.END)
+                search_entry.config(fg=theme["input_fg"])
+                self._search_var.set("")
+
+        def _search_focus_out(e):
+            if not search_entry.get():
+                search_entry.insert(0, "Search accounts…")
+                search_entry.config(fg=theme["text_muted"])
+                self._search_var.set("")
+
+        search_entry.bind("<FocusIn>",  _search_focus_in)
+        search_entry.bind("<FocusOut>", _search_focus_out)
+
+        # Thin accent separator under top bar
+        tk.Frame(content_outer, bg=theme["section_border"], height=2).pack(fill=tk.X)
+
+        # Scrollable card area
+        scroll_container = tk.Frame(content_outer, bg=theme["surface_bg"])
+        scroll_container.pack(fill=tk.BOTH, expand=True)
+
         self.canvas = tk.Canvas(
-            content_frame,
+            scroll_container,
             bg=theme["surface_bg"],
             highlightthickness=0,
         )
-        scrollbar = tk.Scrollbar(content_frame, orient="vertical", command=self.canvas.yview)
-
-        # Scrollable frame
+        scrollbar = tk.Scrollbar(
+            scroll_container, orient="vertical", command=self.canvas.yview
+        )
         self.scrollable_frame = tk.Frame(self.canvas, bg=theme["surface_bg"])
         self.scrollable_frame.bind(
             "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")),
+            lambda e: self.canvas.configure(
+                scrollregion=self.canvas.bbox("all")
+            ),
         )
-
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=scrollbar.set)
-
-        # Pack canvas and scrollbar
-        self.canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
-
-        # Enable mouse wheel scrolling
         self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
 
-        # Load and display accounts
         self.refresh_accounts()
+
+    # ------------------------------------------------------------------
+    # Sidebar helper
+    # ------------------------------------------------------------------
+    def _sidebar_button(self, parent, icon, label, command, danger=False):
+        """Create a full-width sidebar nav item with hover effect."""
+        normal_bg  = theme["sidebar_bg"]
+        hover_bg   = theme["sidebar_hover"]
+        normal_fg  = theme["status_danger"] if danger else theme["sidebar_fg"]
+
+        row = tk.Frame(parent, bg=normal_bg, cursor="hand2")
+        row.pack(fill=tk.X, padx=8, pady=1)
+
+        icon_lbl = tk.Label(row, text=icon,  font=("Segoe UI", 13),
+                            bg=normal_bg, fg=normal_fg, width=3)
+        icon_lbl.pack(side=tk.LEFT, padx=(6, 2), pady=8)
+
+        text_lbl = tk.Label(row, text=label, font=("Segoe UI", 10),
+                            bg=normal_bg, fg=normal_fg, anchor="w")
+        text_lbl.pack(side=tk.LEFT, pady=8)
+
+        def _on_enter(e):
+            row.config(bg=hover_bg)
+            icon_lbl.config(bg=hover_bg)
+            text_lbl.config(bg=hover_bg)
+
+        def _on_leave(e):
+            row.config(bg=normal_bg)
+            icon_lbl.config(bg=normal_bg)
+            text_lbl.config(bg=normal_bg)
+
+        def _on_click(e):
+            command()
+
+        for widget in (row, icon_lbl, text_lbl):
+            widget.bind("<Enter>",   _on_enter)
+            widget.bind("<Leave>",   _on_leave)
+            widget.bind("<Button-1>", _on_click)
+
+    # ------------------------------------------------------------------
+    # Legacy stubs (called by _build_widgets in older code paths / tests)
+    # ------------------------------------------------------------------
+    def create_header(self):
+        pass  # replaced by _create_layout
+
+    def create_text_button(self, *args, **kwargs):
+        pass  # replaced by _sidebar_button
+
+    def create_main_content(self):
+        pass  # replaced by _create_layout
+
 
     def _on_mousewheel(self, event):
         """Handle mouse wheel scrolling."""
@@ -249,33 +330,42 @@ class MainMenu(tk.Tk):
 
     def refresh_accounts(self):
         """Load accounts and refresh the display."""
-        # Clear existing account cards
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
 
-        # Load accounts from manager, then sort
         accounts = self.account_manager.get_all_accounts()
         print(f"[DEBUG] refresh_accounts: loaded {len(accounts)} accounts for user {self.username}")
         accounts = self._sort_accounts(accounts)
 
+        # Apply search filter
+        query = getattr(self, "_search_var", None)
+        if query:
+            q = query.get().strip().lower()
+            placeholder = "search accounts…"
+            if q and q != placeholder:
+                accounts = [
+                    a for a in accounts
+                    if q in a.get("account_name", "").lower()
+                    or q in a.get("username", "").lower()
+                    or q in (a.get("website_url") or "").lower()
+                ]
+
         if not accounts:
-            print("[DEBUG] No accounts found. Displaying empty state message.")
             tk.Label(
                 self.scrollable_frame,
-                text="No accounts yet.\n\nClick the '+' button to create your first account!",
-                font=("Arial", 14),
+                text="No accounts found.\n\nClick  ＋ New Account  in the sidebar to add one.",
+                font=("Segoe UI", 13),
                 bg=theme["surface_bg"],
                 fg=theme["text_muted"],
-            ).grid(row=0, column=0, pady=100, padx=100)
+                justify="center",
+            ).grid(row=0, column=0, pady=120, padx=80)
         else:
             print(f"[DEBUG] Displaying {len(accounts)} account cards.")
-            # Calculate number of columns based on window width
             window_width = self.winfo_width()
-            if window_width < 100:
-                window_width = 1200
-
-            available_width = window_width - 60
-            card_width = 400
+            if window_width < 200:
+                window_width = 1100
+            available_width = window_width - 190 - 40  # sidebar + padding
+            card_width = 380
             num_columns = max(1, available_width // card_width)
 
             for index, account in enumerate(accounts):
@@ -284,290 +374,216 @@ class MainMenu(tk.Tk):
                 self.create_account_card(account, row, col)
 
             for col in range(num_columns):
-                self.scrollable_frame.grid_columnconfigure(col, weight=1, uniform="column")
+                self.scrollable_frame.grid_columnconfigure(
+                    col, weight=1, uniform="column"
+                )
+
 
     def create_account_card(self, account, row, col):
-        """Create a card widget for an account entry."""
+        """Create a modernised card widget for an account entry."""
         from datetime import datetime
 
-        card_bg = theme["card_bg"]
+        card_bg   = theme["card_bg"]
         card_inner = theme["card_inner_bg"]
-        label_fg = theme["card_label_fg"]
+        label_fg  = theme["card_label_fg"]
         accent_fg = theme["accent"]
+        shadow    = theme.color("card_shadow", theme["app_bg"])
 
-        # Card frame
-        card = tk.Frame(
+        # Outer wrapper gives the illusion of a shadow / elevation border
+        wrapper = tk.Frame(
             self.scrollable_frame,
-            bg=card_bg,
-            relief=tk.RAISED,
-            borderwidth=1,
+            bg=shadow,
+            padx=1,
+            pady=1,
         )
-        card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
+        wrapper.grid(row=row, column=col, padx=12, pady=10, sticky="nsew")
 
-        # Top row: Account name and action buttons
-        top_frame = tk.Frame(card, bg=card_bg)
-        top_frame.pack(fill=tk.X, padx=15, pady=(10, 5))
+        card = tk.Frame(wrapper, bg=card_bg)
+        card.pack(fill=tk.BOTH, expand=True)
+
+        # ── Coloured accent strip along the left edge ──────────────────
+        accent_bar = tk.Frame(card, bg=accent_fg, width=4)
+        accent_bar.pack(side=tk.LEFT, fill=tk.Y)
+
+        body = tk.Frame(card, bg=card_bg)
+        body.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=14, pady=12)
+
+        # ── Account name (large + bold) + action buttons ───────────────
+        top_row = tk.Frame(body, bg=card_bg)
+        top_row.pack(fill=tk.X)
 
         tk.Label(
-            top_frame,
+            top_row,
             text=account["account_name"],
-            font=("Arial", 14, "bold"),
+            font=("Segoe UI", 14, "bold"),
             bg=card_bg,
-            fg=accent_fg,
+            fg=theme["text_primary"],
+            anchor="w",
         ).pack(side=tk.LEFT)
 
-        # Action buttons frame (right side)
-        action_frame = tk.Frame(top_frame, bg=card_bg)
+        action_frame = tk.Frame(top_row, bg=card_bg)
         action_frame.pack(side=tk.RIGHT)
 
-        edit_btn = tk.Button(
-            action_frame,
-            text="✏",
-            command=lambda: self.edit_account(account["id"]),
-            font=("Arial", 14),
-            bg=card_bg,
-            fg=accent_fg,
-            activebackground=card_bg,
-            relief=tk.FLAT,
-            cursor="hand2",
-            width=2,
-        )
-        edit_btn.pack(side=tk.LEFT, padx=5)
+        def _make_icon_btn(parent, text, fg, cmd):
+            b = tk.Label(parent, text=text, font=("Segoe UI", 13),
+                         bg=card_bg, fg=fg, cursor="hand2")
+            b.pack(side=tk.LEFT, padx=4)
+            b.bind("<Button-1>", lambda e: cmd())
+            b.bind("<Enter>", lambda e: b.config(fg=accent_fg))
+            b.bind("<Leave>", lambda e: b.config(fg=fg))
+            return b
 
-        delete_btn = tk.Button(
-            action_frame,
-            text="🗑",
-            command=lambda: self.delete_account(account["id"]),
-            font=("Arial", 14),
-            bg=card_bg,
-            fg=theme["status_danger"],
-            activebackground=card_bg,
-            relief=tk.FLAT,
-            cursor="hand2",
-            width=2,
-        )
-        delete_btn.pack(side=tk.LEFT, padx=5)
+        _make_icon_btn(action_frame, "✏", label_fg,
+                       lambda: self.edit_account(account["id"]))
+        _make_icon_btn(action_frame, "🗑", theme["status_danger"],
+                       lambda: self.delete_account(account["id"]))
 
-        # Content frame
-        content_frame = tk.Frame(card, bg=card_bg)
-        content_frame.pack(fill=tk.X, padx=15, pady=5)
+        # ── Thin divider ───────────────────────────────────────────────
+        tk.Frame(body, bg=theme.color("card_shadow", theme["app_bg"]),
+                 height=1).pack(fill=tk.X, pady=(6, 8))
 
-        # Username row
-        username_frame = tk.Frame(content_frame, bg=card_bg)
-        username_frame.pack(fill=tk.X, pady=5)
-
-        tk.Label(
-            username_frame,
-            text="Username:",
-            font=("Arial", 10, "bold"),
-            bg=card_bg,
-            fg=label_fg,
-            width=12,
-            anchor="w",
-        ).pack(side=tk.LEFT)
-
-        username_display = tk.Entry(
-            username_frame,
-            font=("Arial", 10),
-            bg=card_inner,
-            fg=theme["input_fg"],
-            relief=tk.FLAT,
-            state="readonly",
-            width=40,
-            readonlybackground=card_inner,
-        )
-        username_display.pack(side=tk.LEFT, padx=5)
-        username_display.configure(state="normal")
-        username_display.insert(0, account["username"])
-        username_display.configure(state="readonly")
-
-        # Copy username button
-        tk.Button(
-            username_frame,
-            text="📋",
-            command=lambda: self.copy_to_clipboard(
-                account["username"], "Username", account_id=account["id"]
-            ),
-            font=("Arial", 10),
-            bg=card_bg,
-            fg=label_fg,
-            activebackground=card_bg,
-            relief=tk.FLAT,
-            cursor="hand2",
-        ).pack(side=tk.LEFT)
-
-        # Password row
-        password_frame = tk.Frame(content_frame, bg=card_bg)
-        password_frame.pack(fill=tk.X, pady=5)
-
-        tk.Label(
-            password_frame,
-            text="Password:",
-            font=("Arial", 10, "bold"),
-            bg=card_bg,
-            fg=label_fg,
-            width=12,
-            anchor="w",
-        ).pack(side=tk.LEFT)
-
-        password_var = tk.StringVar(master=self, value="*" * 10)
-        password_display = tk.Entry(
-            password_frame,
-            textvariable=password_var,
-            font=("Arial", 10),
-            bg=card_inner,
-            fg=theme["input_fg"],
-            relief=tk.FLAT,
-            state="readonly",
-            width=40,
-            readonlybackground=card_inner,
-        )
-        password_display.pack(side=tk.LEFT, padx=5)
-
-        show_password = [False]
-
-        def toggle_password_visibility():
-            if show_password[0]:
-                password_var.set("*" * 10)
-                show_btn.config(text="👁")
-                show_password[0] = False
-            else:
-                password_var.set(account["password"])
-                show_btn.config(text="👁‍🗨")
-                show_password[0] = True
-            password_display.update_idletasks()
-
-        show_btn = tk.Button(
-            password_frame,
-            text="👁",
-            command=toggle_password_visibility,
-            font=("Arial", 10),
-            bg=card_bg,
-            fg=label_fg,
-            activebackground=card_bg,
-            relief=tk.FLAT,
-            cursor="hand2",
-        )
-        show_btn.pack(side=tk.LEFT)
-
-        # Copy password button - passes account_id so we can track last_copied
-        tk.Button(
-            password_frame,
-            text="📋",
-            command=lambda: self.copy_to_clipboard(
-                account["password"], "Password", account_id=account["id"]
-            ),
-            font=("Arial", 10),
-            bg=card_bg,
-            fg=label_fg,
-            activebackground=card_bg,
-            relief=tk.FLAT,
-            cursor="hand2",
-        ).pack(side=tk.LEFT)
-
-        # Website URL (if present)
-        if account.get("website_url"):
-            website_frame = tk.Frame(content_frame, bg=card_bg)
-            website_frame.pack(fill=tk.X, pady=5)
+        # ── Field rows ─────────────────────────────────────────────────
+        def _field_row(label_text, value_text, copy_value=None, secret=False):
+            row_frame = tk.Frame(body, bg=card_bg)
+            row_frame.pack(fill=tk.X, pady=3)
 
             tk.Label(
-                website_frame,
-                text="Website:",
-                font=("Arial", 10, "bold"),
+                row_frame,
+                text=label_text,
+                font=("Segoe UI", 9),
                 bg=card_bg,
                 fg=label_fg,
-                width=12,
+                width=11,
                 anchor="w",
             ).pack(side=tk.LEFT)
 
-            website_label = tk.Label(
-                website_frame,
-                text=account["website_url"],
-                font=("Arial", 10, "underline"),
-                bg=card_bg,
-                fg=accent_fg,
-                cursor="hand2",
-            )
-            website_label.pack(side=tk.LEFT, padx=5)
-            website_label.bind("<Button-1>", lambda e: self.open_website(account["website_url"]))
+            val_var = tk.StringVar(master=self,
+                                   value="••••••••••" if secret else value_text)
 
-        # Notes (if present)
-        if account.get("notes"):
-            notes_frame = tk.Frame(content_frame, bg=card_bg)
-            notes_frame.pack(fill=tk.X, pady=5)
-
-            tk.Label(
-                notes_frame,
-                text="Notes:",
-                font=("Arial", 10, "bold"),
-                bg=card_bg,
-                fg=label_fg,
-                width=12,
-                anchor="w",
-            ).pack(side=tk.LEFT, anchor="n")
-
-            notes_text = tk.Text(
-                notes_frame,
-                font=("Arial", 9),
+            val_entry = tk.Entry(
+                row_frame,
+                textvariable=val_var,
+                font=("Segoe UI", 10),
                 bg=card_inner,
                 fg=theme["input_fg"],
-                height=3,
-                width=40,
-                wrap=tk.WORD,
-                state="normal",
+                readonlybackground=card_inner,
                 relief=tk.FLAT,
+                state="readonly",
+                width=30,
+                bd=0,
             )
-            notes_text.pack(side=tk.LEFT, padx=5)
-            notes_text.insert(1.0, account["notes"])
-            notes_text.config(state="disabled")
+            val_entry.pack(side=tk.LEFT, padx=(0, 4))
 
-        # Bottom info row - password age with renewal color coding
-        info_frame = tk.Frame(card, bg=card_bg)
-        info_frame.pack(fill=tk.X, padx=15, pady=(5, 10))
+            if secret:
+                visible = [False]
 
+                def _toggle():
+                    if visible[0]:
+                        val_var.set("••••••••••")
+                        eye_lbl.config(text="👁")
+                        visible[0] = False
+                    else:
+                        val_var.set(value_text)
+                        eye_lbl.config(text="👁‍🗨")
+                        visible[0] = True
+
+                eye_lbl = tk.Label(row_frame, text="👁", font=("Segoe UI", 10),
+                                   bg=card_bg, fg=label_fg, cursor="hand2")
+                eye_lbl.pack(side=tk.LEFT, padx=2)
+                eye_lbl.bind("<Button-1>", lambda e: _toggle())
+
+            if copy_value is not None:
+                copy_lbl = tk.Label(row_frame, text="📋",
+                                    font=("Segoe UI", 10),
+                                    bg=card_bg, fg=label_fg, cursor="hand2")
+                copy_lbl.pack(side=tk.LEFT, padx=2)
+
+                def _copy(lbl=copy_lbl, val=copy_value, fname=label_text):
+                    self.copy_to_clipboard(val, fname, account_id=account["id"])
+                    self._show_copied_feedback(lbl)
+
+                copy_lbl.bind("<Button-1>", lambda e, f=_copy: f())
+
+        _field_row("Username", account["username"],
+                   copy_value=account["username"])
+        _field_row("Password", account["password"],
+                   copy_value=account["password"], secret=True)
+
+        if account.get("website_url"):
+            url_row = tk.Frame(body, bg=card_bg)
+            url_row.pack(fill=tk.X, pady=3)
+            tk.Label(url_row, text="Website",
+                     font=("Segoe UI", 9), bg=card_bg, fg=label_fg,
+                     width=11, anchor="w").pack(side=tk.LEFT)
+            url_lbl = tk.Label(url_row, text=account["website_url"],
+                               font=("Segoe UI", 10, "underline"),
+                               bg=card_bg, fg=accent_fg, cursor="hand2")
+            url_lbl.pack(side=tk.LEFT)
+            url_lbl.bind("<Button-1>",
+                         lambda e: self.open_website(account["website_url"]))
+
+        if account.get("notes"):
+            notes_row = tk.Frame(body, bg=card_bg)
+            notes_row.pack(fill=tk.X, pady=3)
+            tk.Label(notes_row, text="Notes",
+                     font=("Segoe UI", 9), bg=card_bg, fg=label_fg,
+                     width=11, anchor="nw").pack(side=tk.LEFT, anchor="n")
+            notes_box = tk.Text(notes_row, font=("Segoe UI", 9),
+                                bg=card_inner, fg=theme["input_fg"],
+                                height=2, width=30, wrap=tk.WORD,
+                                relief=tk.FLAT, bd=0)
+            notes_box.pack(side=tk.LEFT)
+            notes_box.insert(1.0, account["notes"])
+            notes_box.config(state="disabled")
+
+        # ── Password age footer ────────────────────────────────────────
         last_change = datetime.fromisoformat(account["last_password_change"])
-        now = datetime.now()
-        delta = now - last_change
+        delta = datetime.now() - last_change
 
-        # Format time ago
-        if delta.days == 0:
-            time_ago = "Today"
-        elif delta.days == 1:
-            time_ago = "1 day ago"
-        elif delta.days < 7:
-            time_ago = f"{delta.days} days ago"
-        elif delta.days < 30:
-            weeks = delta.days // 7
-            time_ago = f"{weeks} week{'s' if weeks > 1 else ''} ago"
-        elif delta.days < 365:
-            months = delta.days // 30
-            time_ago = f"{months} month{'s' if months > 1 else ''} ago"
-        else:
-            years = delta.days // 365
-            time_ago = f"{years} year{'s' if years > 1 else ''} ago"
+        if delta.days == 0:       time_ago = "Today"
+        elif delta.days == 1:     time_ago = "1 day ago"
+        elif delta.days < 7:      time_ago = f"{delta.days} days ago"
+        elif delta.days < 30:     time_ago = f"{delta.days // 7}w ago"
+        elif delta.days < 365:    time_ago = f"{delta.days // 30}mo ago"
+        else:                     time_ago = f"{delta.days // 365}y ago"
 
-        # Determine color based on password renewal setting
         renewal_days = self.settings_manager.get_password_renewal_days()
-        text_color = theme["status_neutral"]  # default gray
-
+        age_color = theme["status_neutral"]
         if renewal_days > 0:
-            age_days = delta.days
-            t1 = renewal_days / 3.0
-            t2 = (renewal_days / 3.0) * 2.0
-            if age_days > renewal_days:
-                text_color = theme["status_danger"]
-            elif age_days > t2:
-                text_color = theme["status_orange"]
-            elif age_days > t1:
-                text_color = theme["status_yellow"]
+            t1, t2 = renewal_days / 3.0, (renewal_days / 3.0) * 2.0
+            if delta.days > renewal_days:    age_color = theme["status_danger"]
+            elif delta.days > t2:            age_color = theme["status_orange"]
+            elif delta.days > t1:            age_color = theme["status_yellow"]
 
+        tk.Frame(body, bg=theme.color("card_shadow", theme["app_bg"]),
+                 height=1).pack(fill=tk.X, pady=(8, 4))
         tk.Label(
-            info_frame,
-            text=f"Last password change: {last_change.strftime('%m/%d/%Y')} - {time_ago}",
-            font=("Arial", 9, "italic"),
+            body,
+            text=f"Password changed: {last_change.strftime('%m/%d/%Y')}  ·  {time_ago}",
+            font=("Segoe UI", 8, "italic"),
             bg=card_bg,
-            fg=text_color,
-        ).pack(side=tk.LEFT)
+            fg=age_color,
+            anchor="w",
+        ).pack(anchor="w")
+
+    # ------------------------------------------------------------------
+    # Copy feedback micro-interaction
+    # ------------------------------------------------------------------
+    def _show_copied_feedback(self, label_widget):
+        """Briefly show ✓ Copied on the given label widget."""
+        original_text = label_widget.cget("text")
+        label_widget.config(text="✓", fg=theme["status_success"])
+
+        def _restore():
+            try:
+                label_widget.config(text=original_text,
+                                    fg=theme["card_label_fg"])
+            except tk.TclError:
+                pass
+
+        self.after(1200, _restore)
+
+
 
     # ------------------------------------------------------------------
     # Clipboard (with auto-clear + last_copied tracking)
