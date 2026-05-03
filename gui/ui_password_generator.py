@@ -36,6 +36,7 @@ class PasswordGeneratorApp(tk.Toplevel):
         # Theme integration
         theme.subscribe(self._apply_theme)
         self.bind("<Destroy>", self._on_destroy, add="+")
+        self.bind("<Escape>", lambda e: self.destroy())
 
     # ------------------------------------------------------------------
     # Theme integration

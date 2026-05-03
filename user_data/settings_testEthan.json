@@ -1,8 +1,8 @@
 {
-    "auto_logout_time": 300,
-    "password_renewal_days": 0,
-    "clipboard_autoclear_seconds": 60,
-    "password_strength_requirement": "off",
+    "auto_logout_time": 600,
+    "password_renewal_days": 30,
+    "clipboard_autoclear_seconds": 0,
+    "password_strength_requirement": "low",
     "account_sort_by": "alphabetical",
     "theme": "dark"
 }

@@ -26,7 +26,6 @@ from services.settings import (
     CLIPBOARD_AUTOCLEAR_OPTIONS,
     PASSWORD_STRENGTH_OPTIONS,
     SORT_BY_OPTIONS,
-    THEME_OPTIONS,
 )
 from ui_controller import theme
 
@@ -77,6 +76,7 @@ class SettingsWindow(tk.Toplevel):
         # Live-update on theme change.
         theme.subscribe(self._apply_theme)
         self.bind("<Destroy>", self._on_destroy, add="+")
+        self.bind("<Escape>", lambda e: self.destroy())
 
     # ------------------------------------------------------------------
     # Theme integration
@@ -159,6 +159,12 @@ class SettingsWindow(tk.Toplevel):
         canvas.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
 
+        # Enable mousewheel scrolling while cursor is inside the canvas area.
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<Enter>", lambda e: canvas.bind_all("<MouseWheel>", _on_mousewheel))
+        canvas.bind("<Leave>", lambda e: canvas.unbind_all("<MouseWheel>"))
+
         # Sections (Appearance first so the theme toggle is right at the top)
         self._build_appearance_section(inner)
         self._build_security_section(inner)
@@ -221,41 +227,7 @@ class SettingsWindow(tk.Toplevel):
             options=list(options.keys()),
         )
 
-        # Import-theme button + helper text.
-        import_row = tk.Frame(frame, bg=theme["section_bg"])
-        import_row.pack(fill=tk.X, padx=14, pady=(0, 6))
 
-        import_btn_style = theme.primary_button_style()
-        import_btn_style.update(font=("Segoe UI", 10, "bold"), padx=10)
-        tk.Button(
-            import_row,
-            text="Import Theme...",
-            command=self._on_import_theme,
-            **import_btn_style,
-        ).pack(side=tk.LEFT)
-
-        tk.Label(
-            import_row,
-            text="(.json palette file)",
-            font=("Segoe UI", 9, "italic"),
-            bg=theme["section_bg"],
-            fg=theme["text_secondary"],
-        ).pack(side=tk.LEFT, padx=(8, 0))
-
-        tk.Label(
-            frame,
-            text=(
-                "Imported themes are stored in user_data/themes/ and "
-                "appear in the dropdown above. Format: a JSON file with "
-                'a top-level "name" and a "palette" object mapping color '
-                "roles to hex strings (e.g. \"app_bg\": \"#1a1a1a\")."
-            ),
-            font=("Segoe UI", 9),
-            bg=theme["section_bg"],
-            fg=theme["text_secondary"],
-            wraplength=560,
-            justify="left",
-        ).pack(anchor="w", padx=14, pady=(0, 10))
 
     def _on_theme_var_changed(self, *_args):
         try:
@@ -272,29 +244,6 @@ class SettingsWindow(tk.Toplevel):
         # notifies every subscribed window (including this one, which
         # rebuilds itself via _apply_theme).
         theme.set_theme(new_theme)
-
-    def _on_import_theme(self):
-        """Pick a JSON file, register it as a new theme, switch to it."""
-        path = filedialog.askopenfilename(
-            parent=self,
-            title="Select a theme JSON file",
-            filetypes=[("Theme JSON (*.json)", "*.json"), ("All files", "*.*")],
-        )
-        if not path:
-            return
-        ok, result = theme.import_theme(path)
-        if not ok:
-            messagebox.showerror("Import theme", result, parent=self)
-            return
-        # ``result`` is the registered theme name. Switching to it
-        # triggers _apply_theme, which rebuilds the section and the
-        # dropdown picks up the new option.
-        theme.set_theme(result)
-        messagebox.showinfo(
-            "Theme imported",
-            f"Theme '{result}' imported and applied.",
-            parent=self,
-        )
 
     # ------------------------------------------------------------------
     # Section: Security (auto-logout, renewal, clipboard, strength)
@@ -523,6 +472,23 @@ class SettingsWindow(tk.Toplevel):
             style="BlueVault.TCombobox",
         )
         combo.grid(row=0, column=1, padx=(10, 0), sticky="e")
+
+        # Style the dropdown popup Listbox for dark mode. The popup is a
+        # plain tk.Listbox that doesn't inherit ttk styles, so we patch
+        # it via postcommand each time the dropdown opens.
+        def _style_popup(c=combo):
+            try:
+                popup = c.tk.eval(f"ttk::combobox::PopdownWindow {c}")
+                lb = c.nametowidget(popup + ".f.l")
+                lb.configure(
+                    background=theme["input_bg"],
+                    foreground=theme["input_fg"],
+                    selectbackground=theme["accent"],
+                    selectforeground=theme["btn_primary_fg"],
+                )
+            except tk.TclError:
+                pass
+        combo.configure(postcommand=_style_popup)
 
         # Force the combobox to display the variable's current value.
         # Required because, on some Tk builds, a freshly-created Combobox
