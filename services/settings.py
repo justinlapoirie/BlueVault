@@ -31,6 +31,9 @@ DEFAULT_SETTINGS = {
     # How the main menu sorts account cards
     # "alphabetical" | "date_created" | "date_modified" | "last_copied"
     "account_sort_by": "alphabetical",
+    # UI theme: "light" | "dark"
+    # See gui/ui_controller.py for the palette definitions.
+    "theme": "dark",
 }
 
 AUTO_LOGOUT_OPTIONS = {
@@ -64,6 +67,11 @@ SORT_BY_OPTIONS = {
     "Date Created": "date_created",
     "Date Modified": "date_modified",
     "Last Copied": "last_copied",
+}
+
+THEME_OPTIONS = {
+    "Dark": "dark",
+    "Light": "light",
 }
 
 
@@ -163,6 +171,13 @@ class SettingsManager:
 
     def get_account_sort_by(self) -> str:
         return str(self.settings.get("account_sort_by", DEFAULT_SETTINGS["account_sort_by"]))
+
+    def get_theme(self) -> str:
+        """Return the saved UI theme name ("light" or "dark")."""
+        value = str(self.settings.get("theme", DEFAULT_SETTINGS["theme"])).lower()
+        if value not in ("light", "dark"):
+            value = DEFAULT_SETTINGS["theme"]
+        return value
 
     # ------------------------------------------------------------------
     # Master password change
