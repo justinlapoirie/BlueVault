@@ -5,13 +5,14 @@ import os
 # Ensure the parent directory is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from ui_controller import theme
+
 
 class MainMenu(tk.Tk):
     def __init__(self, username="User", login_window=None, auto_logout_time=300, master_password=None):
         super().__init__()
         self.title("BlueVault")
         self.geometry("1100x700")
-        self.configure(bg="#23272a")  # Dark gray background
 
         # Store user info and login window reference
         self.username = username
@@ -21,6 +22,12 @@ class MainMenu(tk.Tk):
         # Initialize settings manager and override auto-logout from settings
         from services.settings import SettingsManager
         self.settings_manager = SettingsManager(username)
+
+        # Bind the theme controller to this user's settings (loads + persists).
+        theme.attach_settings(self.settings_manager)
+        theme.configure_ttk(self)
+        self.configure(bg=theme["app_bg"])
+
         settings_logout = self.settings_manager.get_auto_logout_time()
         if settings_logout and settings_logout > 0:
             auto_logout_time = settings_logout
@@ -41,8 +48,8 @@ class MainMenu(tk.Tk):
         self.password_auditor_window = None
         self.settings_window = None
 
-        self.create_header()
-        self.create_main_content()
+        # Build initial UI
+        self._build_widgets()
 
         # Bind window resize to refresh grid layout
         self.bind("<Configure>", self._on_window_resize)
@@ -55,23 +62,57 @@ class MainMenu(tk.Tk):
         # Start the auto-logout timer
         self.start_timer()
 
+        # Subscribe to live theme changes (re-paint when settings flip
+        # dark <-> light). Unsubscribe on destroy.
+        theme.subscribe(self._apply_theme)
+        self.bind("<Destroy>", self._on_destroy, add="+")
+
+    # ------------------------------------------------------------------
+    # Theme integration
+    # ------------------------------------------------------------------
+    def _build_widgets(self):
+        """(Re)create every child widget from scratch using current theme."""
+        for child in self.winfo_children():
+            child.destroy()
+        self.configure(bg=theme["app_bg"])
+        self.create_header()
+        self.create_main_content()
+
+    def _apply_theme(self):
+        """Theme-change callback: rebuild header + content with new colors."""
+        try:
+            theme.configure_ttk(self)
+            self._build_widgets()
+        except tk.TclError:
+            pass
+
+    def _on_destroy(self, event):
+        if event.widget is self:
+            theme.unsubscribe(self._apply_theme)
+
     def create_header(self):
         """Create the header with logo, user info, and action buttons."""
-        header_frame = tk.Frame(self, bg="#2c2f33", height=100, relief=tk.RAISED, borderwidth=1)
+        header_frame = tk.Frame(
+            self,
+            bg=theme["header_bg"],
+            height=100,
+            relief=tk.RAISED,
+            borderwidth=1,
+        )
         header_frame.pack(fill=tk.X, padx=10, pady=10)
         header_frame.pack_propagate(False)
 
         # Left side - User info
-        left_frame = tk.Frame(header_frame, bg="#2c2f33")
+        left_frame = tk.Frame(header_frame, bg=theme["header_bg"])
         left_frame.pack(side=tk.LEFT, padx=20, pady=10)
 
         tk.Label(
             left_frame,
             text=f"Logged in as: {self.username}",
             font=("Arial", 11),
-            bg="#2c2f33",
-            fg="#ffffff",
-            anchor="w"
+            bg=theme["header_bg"],
+            fg=theme["text_primary"],
+            anchor="w",
         ).pack(anchor="w")
 
         # Timer label that will be updated
@@ -79,9 +120,9 @@ class MainMenu(tk.Tk):
             left_frame,
             text=self._format_time(self.time_remaining),
             font=("Arial", 11),
-            bg="#2c2f33",
-            fg="#ffffff",
-            anchor="w"
+            bg=theme["header_bg"],
+            fg=theme["text_primary"],
+            anchor="w",
         )
         self.timer_label.pack(anchor="w", pady=(5, 0))
 
@@ -90,25 +131,25 @@ class MainMenu(tk.Tk):
             from tkinter import PhotoImage
             logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
             self.logo_img = PhotoImage(file=logo_path)
-            logo_label = tk.Label(header_frame, image=self.logo_img, bg="#2c2f33")
+            logo_label = tk.Label(header_frame, image=self.logo_img, bg=theme["header_bg"])
             logo_label.pack(side=tk.LEFT, expand=True)
-        except Exception as e:
+        except Exception:
             # If logo not found, show nothing (or fallback text)
-            logo_label = tk.Label(header_frame, text="", bg="#2c2f33")
+            logo_label = tk.Label(header_frame, text="", bg=theme["header_bg"])
             logo_label.pack(side=tk.LEFT, expand=True)
 
         # Right side - Action buttons
-        buttons_frame = tk.Frame(header_frame, bg="#2c2f33")
+        buttons_frame = tk.Frame(header_frame, bg=theme["header_bg"])
         buttons_frame.pack(side=tk.RIGHT, padx=20, pady=10)
 
-        # All buttons use the same blue color for consistency
-        blue_color = "#2196F3"
+        # All buttons use the accent button color for consistency
+        accent_color = theme["btn_primary_bg"]
         buttons = [
-            ("+", "New Account.", self.open_new_account, blue_color),
-            ("💡", "PW Generator", self.open_password_generator, blue_color),
-            ("🔍", "PW audit.", self.open_password_auditor, blue_color),
-            ("⚙", "Settings.", self.open_settings, blue_color),
-            ("→", "Log out.", self.logout, blue_color)
+            ("+", "New Account.", self.open_new_account, accent_color),
+            ("💡", "PW Generator", self.open_password_generator, accent_color),
+            ("🔍", "PW audit.", self.open_password_auditor, accent_color),
+            ("⚙", "Settings.", self.open_settings, accent_color),
+            ("→", "Log out.", self.logout, accent_color),
         ]
 
         for symbol, label_text, command, color in buttons:
@@ -116,7 +157,7 @@ class MainMenu(tk.Tk):
 
     def create_text_button(self, parent, symbol, label_text, command, color):
         """Create a text-based button with symbol and label."""
-        button_frame = tk.Frame(parent, bg="#2c2f33")
+        button_frame = tk.Frame(parent, bg=theme["header_bg"])
         button_frame.pack(side=tk.LEFT, padx=8)
 
         # Create button with symbol
@@ -126,13 +167,14 @@ class MainMenu(tk.Tk):
             command=command,
             font=("Arial", 20, "bold"),
             bg=color,
-            fg="white",
-            activebackground=color,
+            fg=theme["btn_primary_fg"],
+            activebackground=theme["btn_primary_active"],
+            activeforeground=theme["btn_primary_fg"],
             cursor="hand2",
             width=3,
             height=1,
             relief=tk.RAISED,
-            borderwidth=2
+            borderwidth=2,
         )
         btn.pack()
 
@@ -141,25 +183,34 @@ class MainMenu(tk.Tk):
             button_frame,
             text=label_text,
             font=("Arial", 9),
-            bg="#2c2f33",
-            fg="#ffffff"
+            bg=theme["header_bg"],
+            fg=theme["text_primary"],
         ).pack(pady=(5, 0))
 
     def create_main_content(self):
         """Create the main content area with account cards."""
         # Main content frame
-        content_frame = tk.Frame(self, bg="#ffffff", relief=tk.SUNKEN, borderwidth=2)
+        content_frame = tk.Frame(
+            self,
+            bg=theme["surface_bg"],
+            relief=tk.SUNKEN,
+            borderwidth=2,
+        )
         content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
         # Create canvas for scrolling
-        self.canvas = tk.Canvas(content_frame, bg="#ffffff", highlightthickness=0)
+        self.canvas = tk.Canvas(
+            content_frame,
+            bg=theme["surface_bg"],
+            highlightthickness=0,
+        )
         scrollbar = tk.Scrollbar(content_frame, orient="vertical", command=self.canvas.yview)
 
         # Scrollable frame
-        self.scrollable_frame = tk.Frame(self.canvas, bg="#ffffff")
+        self.scrollable_frame = tk.Frame(self.canvas, bg=theme["surface_bg"])
         self.scrollable_frame.bind(
             "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")),
         )
 
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
@@ -213,8 +264,8 @@ class MainMenu(tk.Tk):
                 self.scrollable_frame,
                 text="No accounts yet.\n\nClick the '+' button to create your first account!",
                 font=("Arial", 14),
-                bg="#ffffff",
-                fg="#888888"
+                bg=theme["surface_bg"],
+                fg=theme["text_muted"],
             ).grid(row=0, column=0, pady=100, padx=100)
         else:
             print(f"[DEBUG] Displaying {len(accounts)} account cards.")
@@ -239,29 +290,34 @@ class MainMenu(tk.Tk):
         """Create a card widget for an account entry."""
         from datetime import datetime
 
+        card_bg = theme["card_bg"]
+        card_inner = theme["card_inner_bg"]
+        label_fg = theme["card_label_fg"]
+        accent_fg = theme["accent"]
+
         # Card frame
         card = tk.Frame(
             self.scrollable_frame,
-            bg="#f9f9f9",
+            bg=card_bg,
             relief=tk.RAISED,
-            borderwidth=1
+            borderwidth=1,
         )
         card.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
 
         # Top row: Account name and action buttons
-        top_frame = tk.Frame(card, bg="#f9f9f9")
+        top_frame = tk.Frame(card, bg=card_bg)
         top_frame.pack(fill=tk.X, padx=15, pady=(10, 5))
 
         tk.Label(
             top_frame,
             text=account["account_name"],
             font=("Arial", 14, "bold"),
-            bg="#f9f9f9",
-            fg="#2196F3"
+            bg=card_bg,
+            fg=accent_fg,
         ).pack(side=tk.LEFT)
 
         # Action buttons frame (right side)
-        action_frame = tk.Frame(top_frame, bg="#f9f9f9")
+        action_frame = tk.Frame(top_frame, bg=card_bg)
         action_frame.pack(side=tk.RIGHT)
 
         edit_btn = tk.Button(
@@ -269,11 +325,12 @@ class MainMenu(tk.Tk):
             text="✏",
             command=lambda: self.edit_account(account["id"]),
             font=("Arial", 14),
-            bg="#f9f9f9",
-            fg="#2196F3",
+            bg=card_bg,
+            fg=accent_fg,
+            activebackground=card_bg,
             relief=tk.FLAT,
             cursor="hand2",
-            width=2
+            width=2,
         )
         edit_btn.pack(side=tk.LEFT, padx=5)
 
@@ -282,38 +339,42 @@ class MainMenu(tk.Tk):
             text="🗑",
             command=lambda: self.delete_account(account["id"]),
             font=("Arial", 14),
-            bg="#f9f9f9",
-            fg="#F44336",
+            bg=card_bg,
+            fg=theme["status_danger"],
+            activebackground=card_bg,
             relief=tk.FLAT,
             cursor="hand2",
-            width=2
+            width=2,
         )
         delete_btn.pack(side=tk.LEFT, padx=5)
 
         # Content frame
-        content_frame = tk.Frame(card, bg="#f9f9f9")
+        content_frame = tk.Frame(card, bg=card_bg)
         content_frame.pack(fill=tk.X, padx=15, pady=5)
 
         # Username row
-        username_frame = tk.Frame(content_frame, bg="#f9f9f9")
+        username_frame = tk.Frame(content_frame, bg=card_bg)
         username_frame.pack(fill=tk.X, pady=5)
 
         tk.Label(
             username_frame,
             text="Username:",
             font=("Arial", 10, "bold"),
-            bg="#f9f9f9",
+            bg=card_bg,
+            fg=label_fg,
             width=12,
-            anchor="w"
+            anchor="w",
         ).pack(side=tk.LEFT)
 
         username_display = tk.Entry(
             username_frame,
             font=("Arial", 10),
-            bg="#ffffff",
+            bg=card_inner,
+            fg=theme["input_fg"],
             relief=tk.FLAT,
             state="readonly",
-            width=40
+            width=40,
+            readonlybackground=card_inner,
         )
         username_display.pack(side=tk.LEFT, padx=5)
         username_display.configure(state="normal")
@@ -328,33 +389,38 @@ class MainMenu(tk.Tk):
                 account["username"], "Username", account_id=account["id"]
             ),
             font=("Arial", 10),
-            bg="#f9f9f9",
+            bg=card_bg,
+            fg=label_fg,
+            activebackground=card_bg,
             relief=tk.FLAT,
-            cursor="hand2"
+            cursor="hand2",
         ).pack(side=tk.LEFT)
 
         # Password row
-        password_frame = tk.Frame(content_frame, bg="#f9f9f9")
+        password_frame = tk.Frame(content_frame, bg=card_bg)
         password_frame.pack(fill=tk.X, pady=5)
 
         tk.Label(
             password_frame,
             text="Password:",
             font=("Arial", 10, "bold"),
-            bg="#f9f9f9",
+            bg=card_bg,
+            fg=label_fg,
             width=12,
-            anchor="w"
+            anchor="w",
         ).pack(side=tk.LEFT)
 
-        password_var = tk.StringVar(value="*" * 10)
+        password_var = tk.StringVar(master=self, value="*" * 10)
         password_display = tk.Entry(
             password_frame,
             textvariable=password_var,
             font=("Arial", 10),
-            bg="#ffffff",
+            bg=card_inner,
+            fg=theme["input_fg"],
             relief=tk.FLAT,
             state="readonly",
-            width=40
+            width=40,
+            readonlybackground=card_inner,
         )
         password_display.pack(side=tk.LEFT, padx=5)
 
@@ -376,9 +442,11 @@ class MainMenu(tk.Tk):
             text="👁",
             command=toggle_password_visibility,
             font=("Arial", 10),
-            bg="#f9f9f9",
+            bg=card_bg,
+            fg=label_fg,
+            activebackground=card_bg,
             relief=tk.FLAT,
-            cursor="hand2"
+            cursor="hand2",
         )
         show_btn.pack(side=tk.LEFT)
 
@@ -390,65 +458,71 @@ class MainMenu(tk.Tk):
                 account["password"], "Password", account_id=account["id"]
             ),
             font=("Arial", 10),
-            bg="#f9f9f9",
+            bg=card_bg,
+            fg=label_fg,
+            activebackground=card_bg,
             relief=tk.FLAT,
-            cursor="hand2"
+            cursor="hand2",
         ).pack(side=tk.LEFT)
 
         # Website URL (if present)
         if account.get("website_url"):
-            website_frame = tk.Frame(content_frame, bg="#f9f9f9")
+            website_frame = tk.Frame(content_frame, bg=card_bg)
             website_frame.pack(fill=tk.X, pady=5)
 
             tk.Label(
                 website_frame,
                 text="Website:",
                 font=("Arial", 10, "bold"),
-                bg="#f9f9f9",
+                bg=card_bg,
+                fg=label_fg,
                 width=12,
-                anchor="w"
+                anchor="w",
             ).pack(side=tk.LEFT)
 
             website_label = tk.Label(
                 website_frame,
                 text=account["website_url"],
                 font=("Arial", 10, "underline"),
-                bg="#f9f9f9",
-                fg="#2196F3",
-                cursor="hand2"
+                bg=card_bg,
+                fg=accent_fg,
+                cursor="hand2",
             )
             website_label.pack(side=tk.LEFT, padx=5)
             website_label.bind("<Button-1>", lambda e: self.open_website(account["website_url"]))
 
         # Notes (if present)
         if account.get("notes"):
-            notes_frame = tk.Frame(content_frame, bg="#f9f9f9")
+            notes_frame = tk.Frame(content_frame, bg=card_bg)
             notes_frame.pack(fill=tk.X, pady=5)
 
             tk.Label(
                 notes_frame,
                 text="Notes:",
                 font=("Arial", 10, "bold"),
-                bg="#f9f9f9",
+                bg=card_bg,
+                fg=label_fg,
                 width=12,
-                anchor="w"
+                anchor="w",
             ).pack(side=tk.LEFT, anchor="n")
 
             notes_text = tk.Text(
                 notes_frame,
                 font=("Arial", 9),
-                bg="#ffffff",
+                bg=card_inner,
+                fg=theme["input_fg"],
                 height=3,
                 width=40,
                 wrap=tk.WORD,
-                state="normal"
+                state="normal",
+                relief=tk.FLAT,
             )
             notes_text.pack(side=tk.LEFT, padx=5)
             notes_text.insert(1.0, account["notes"])
             notes_text.config(state="disabled")
 
         # Bottom info row - password age with renewal color coding
-        info_frame = tk.Frame(card, bg="#f9f9f9")
+        info_frame = tk.Frame(card, bg=card_bg)
         info_frame.pack(fill=tk.X, padx=15, pady=(5, 10))
 
         last_change = datetime.fromisoformat(account["last_password_change"])
@@ -474,26 +548,25 @@ class MainMenu(tk.Tk):
 
         # Determine color based on password renewal setting
         renewal_days = self.settings_manager.get_password_renewal_days()
-        text_color = "#666666"  # default gray
+        text_color = theme["status_neutral"]  # default gray
 
         if renewal_days > 0:
             age_days = delta.days
             t1 = renewal_days / 3.0
             t2 = (renewal_days / 3.0) * 2.0
             if age_days > renewal_days:
-                text_color = "#F44336"   # red - overdue
+                text_color = theme["status_danger"]
             elif age_days > t2:
-                text_color = "#FB8C00"   # orange - last third
+                text_color = theme["status_orange"]
             elif age_days > t1:
-                text_color = "#F9A825"   # yellow - middle third
-            # first third -> stays gray
+                text_color = theme["status_yellow"]
 
         tk.Label(
             info_frame,
             text=f"Last password change: {last_change.strftime('%m/%d/%Y')} - {time_ago}",
             font=("Arial", 9, "italic"),
-            bg="#f9f9f9",
-            fg=text_color
+            bg=card_bg,
+            fg=text_color,
         ).pack(side=tk.LEFT)
 
     # ------------------------------------------------------------------
@@ -600,7 +673,7 @@ class MainMenu(tk.Tk):
             "DELETE",
             f"Are you sure you want to delete '{account['account_name']}'?\n\n"
             "This action cannot be undone!",
-            icon='warning'
+            icon='warning',
         )
 
         if result:
@@ -637,7 +710,7 @@ class MainMenu(tk.Tk):
 
         try:
             from ui_password_generator import PasswordGeneratorApp
-            self.password_generator_window = PasswordGeneratorApp()
+            self.password_generator_window = PasswordGeneratorApp(self)
         except ImportError as e:
             print(f"Error importing password generator: {e}")
             print("Make sure ui_password_generator.py exists in the gui folder")
@@ -654,7 +727,7 @@ class MainMenu(tk.Tk):
 
         try:
             from ui_password_auditor import PasswordAuditorApp
-            self.password_auditor_window = PasswordAuditorApp()
+            self.password_auditor_window = PasswordAuditorApp(self)
         except ImportError as e:
             print(f"Error importing password auditor: {e}")
             print("Make sure ui_password_auditor.py exists in the gui folder")
@@ -716,6 +789,9 @@ class MainMenu(tk.Tk):
                 except Exception:
                     pass
 
+        # Theme controller cleanup
+        theme.unsubscribe(self._apply_theme)
+
         # Destroy main menu
         self.destroy()
 
@@ -723,6 +799,7 @@ class MainMenu(tk.Tk):
         if self.login_window is not None:
             self.login_window.deiconify()
             self.login_window.show_initial_screen()
+
 
     # ------------------------------------------------------------------
     # Auto-logout timer
@@ -744,14 +821,15 @@ class MainMenu(tk.Tk):
         """Update the timer display and handle auto-logout."""
         if self.time_remaining > 0:
             self.time_remaining -= 1
-            self.timer_label.config(text=self._format_time(self.time_remaining))
+            try:
+                self.timer_label.config(text=self._format_time(self.time_remaining))
+            except tk.TclError:
+                pass
             self.timer_id = self.after(1000, self.update_timer)
         else:
-            # Time's up - close app FIRST, then show message
             if hasattr(self, 'timer_id'):
                 self.after_cancel(self.timer_id)
 
-            # Close any open child windows
             for attr in ("password_generator_window", "password_auditor_window", "settings_window"):
                 w = getattr(self, attr, None)
                 if w is not None:
@@ -765,6 +843,7 @@ class MainMenu(tk.Tk):
             from tkinter import messagebox
             messagebox.showinfo("Session Expired", "Your session has expired. Please log in again.")
 
+            theme.unsubscribe(self._apply_theme)
             self.destroy()
 
             if self.login_window is not None:

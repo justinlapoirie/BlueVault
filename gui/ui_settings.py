@@ -3,8 +3,13 @@ Settings window for BlueVault.
 
 Opened from the main menu's gear button. Provides dropdowns for the
 configurable settings (auto-logout, password renewal, clipboard auto-
-clear, password strength requirement, and account sorting), plus
-buttons for change master password, export vault, and import vault.
+clear, password strength requirement, account sorting, and appearance
+theme), plus buttons for change master password, export vault, and
+import vault.
+
+All colors are pulled from :mod:`gui.ui_controller` so the window
+respects the active light/dark theme and re-paints itself live when the
+user toggles the theme.
 """
 
 import os
@@ -21,7 +26,9 @@ from services.settings import (
     CLIPBOARD_AUTOCLEAR_OPTIONS,
     PASSWORD_STRENGTH_OPTIONS,
     SORT_BY_OPTIONS,
+    THEME_OPTIONS,
 )
+from ui_controller import theme
 
 
 # -----------------------------------------------------------------------------
@@ -54,15 +61,65 @@ class SettingsWindow(tk.Toplevel):
         self.callback = callback
 
         self.title(f"Settings - {username} - BlueVault")
-        self.geometry("640x720")
-        self.configure(bg="#23272a")
+        self.geometry("640x780")
+        self.configure(bg=theme["app_bg"])
         self.resizable(False, True)
 
         # Make modal-ish
         self.transient(master)
         self.grab_set()
 
+        # Apply ttk styling so the comboboxes match the theme.
+        theme.configure_ttk(self)
+
         self._build_ui()
+
+        # Live-update on theme change.
+        theme.subscribe(self._apply_theme)
+        self.bind("<Destroy>", self._on_destroy, add="+")
+
+    # ------------------------------------------------------------------
+    # Theme integration
+    # ------------------------------------------------------------------
+    def _apply_theme(self):
+        try:
+            self.configure(bg=theme["app_bg"])
+            theme.configure_ttk(self)
+
+            # Snapshot the user's in-progress (unsaved) selections so
+            # they survive the rebuild.
+            try:
+                snapshot = {
+                    "auto": self.auto_logout_var.get(),
+                    "renewal": self.renewal_var.get(),
+                    "clipboard": self.clipboard_var.get(),
+                    "strength": self.strength_var.get(),
+                    "sort": self.sort_var.get(),
+                    "theme": self.theme_var.get(),
+                }
+            except (AttributeError, tk.TclError):
+                snapshot = None
+
+            for child in self.winfo_children():
+                child.destroy()
+            self._build_ui()
+
+            if snapshot:
+                try:
+                    self.auto_logout_var.set(snapshot["auto"])
+                    self.renewal_var.set(snapshot["renewal"])
+                    self.clipboard_var.set(snapshot["clipboard"])
+                    self.strength_var.set(snapshot["strength"])
+                    self.sort_var.set(snapshot["sort"])
+                    self.theme_var.set(snapshot["theme"])
+                except (AttributeError, tk.TclError):
+                    pass
+        except tk.TclError:
+            pass
+
+    def _on_destroy(self, event):
+        if event.widget is self:
+            theme.unsubscribe(self._apply_theme)
 
     # ------------------------------------------------------------------
     # UI construction
@@ -73,25 +130,25 @@ class SettingsWindow(tk.Toplevel):
             self,
             text="Settings",
             font=("Arial", 20, "bold"),
-            bg="#23272a",
-            fg="#7289da"
+            bg=theme["app_bg"],
+            fg=theme["accent"],
         ).pack(pady=(18, 6))
 
         tk.Label(
             self,
             text=f"Logged in as: {self.username}",
             font=("Arial", 10, "italic"),
-            bg="#23272a",
-            fg="#bbbbbb",
+            bg=theme["app_bg"],
+            fg=theme["text_secondary"],
         ).pack(pady=(0, 10))
 
         # Scrollable container so the window stays usable on smaller screens
-        container = tk.Frame(self, bg="#23272a")
+        container = tk.Frame(self, bg=theme["app_bg"])
         container.pack(fill=tk.BOTH, expand=True, padx=16, pady=(0, 8))
 
-        canvas = tk.Canvas(container, bg="#23272a", highlightthickness=0)
+        canvas = tk.Canvas(container, bg=theme["app_bg"], highlightthickness=0)
         scroll = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
-        inner = tk.Frame(canvas, bg="#23272a")
+        inner = tk.Frame(canvas, bg=theme["app_bg"])
 
         inner.bind(
             "<Configure>",
@@ -102,37 +159,142 @@ class SettingsWindow(tk.Toplevel):
         canvas.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
 
-        # Sections
+        # Sections (Appearance first so the theme toggle is right at the top)
+        self._build_appearance_section(inner)
         self._build_security_section(inner)
         self._build_organization_section(inner)
         self._build_master_password_section(inner)
         self._build_vault_section(inner)
 
         # Bottom action bar (always visible)
-        action_bar = tk.Frame(self, bg="#f0f0f0")
+        action_bar = tk.Frame(self, bg=theme["app_bg"])
         action_bar.pack(fill=tk.X, padx=16, pady=(6, 16))
 
+        save_style = theme.success_button_style()
+        save_style.update(font=("Arial", 12, "bold"), width=16)
         tk.Button(
             action_bar,
             text="Save Settings",
             command=self._on_save,
-            font=("Arial", 12, "bold"),
-            bg="#4CAF50",
-            fg="white",
-            width=16,
-            cursor="hand2",
+            **save_style,
         ).pack(side=tk.RIGHT, padx=(6, 0))
 
+        close_style = theme.secondary_button_style()
+        close_style.update(font=("Arial", 12), width=10)
         tk.Button(
             action_bar,
             text="Close",
             command=self.destroy,
-            font=("Arial", 12),
-            bg="#9E9E9E",
-            fg="white",
-            width=10,
-            cursor="hand2",
+            **close_style,
         ).pack(side=tk.RIGHT)
+
+    # ------------------------------------------------------------------
+    # Section: Appearance (theme toggle)
+    # ------------------------------------------------------------------
+    def _build_appearance_section(self, parent):
+        frame = self._make_section(parent, "Appearance")
+
+        # Pull the live list of themes (built-ins + any imported by the
+        # user) every time we (re)build the section so newly-imported
+        # themes show up without needing a restart.
+        options = theme.available_themes()  # {label: name}
+        self._theme_options = options       # remember for _on_theme_var_changed
+
+        self.theme_var = tk.StringVar(
+            master=self,
+            value=_label_for_value(options, theme.current_name),
+        )
+
+        # Wire a trace so the toggle applies immediately -- the user
+        # doesn't have to hit Save before they see the change.
+        self.theme_var.trace_add("write", self._on_theme_var_changed)
+
+        self._make_dropdown(
+            frame,
+            label="Theme",
+            description=(
+                "Switch between built-in light/dark schemes or any theme "
+                "you've imported. Changes apply to every BlueVault window "
+                "immediately and are remembered across sessions."
+            ),
+            variable=self.theme_var,
+            options=list(options.keys()),
+        )
+
+        # Import-theme button + helper text.
+        import_row = tk.Frame(frame, bg=theme["section_bg"])
+        import_row.pack(fill=tk.X, padx=14, pady=(0, 6))
+
+        import_btn_style = theme.primary_button_style()
+        import_btn_style.update(font=("Arial", 10, "bold"), padx=10)
+        tk.Button(
+            import_row,
+            text="Import Theme...",
+            command=self._on_import_theme,
+            **import_btn_style,
+        ).pack(side=tk.LEFT)
+
+        tk.Label(
+            import_row,
+            text="(.json palette file)",
+            font=("Arial", 9, "italic"),
+            bg=theme["section_bg"],
+            fg=theme["text_secondary"],
+        ).pack(side=tk.LEFT, padx=(8, 0))
+
+        tk.Label(
+            frame,
+            text=(
+                "Imported themes are stored in user_data/themes/ and "
+                "appear in the dropdown above. Format: a JSON file with "
+                'a top-level "name" and a "palette" object mapping color '
+                "roles to hex strings (e.g. \"app_bg\": \"#1a1a1a\")."
+            ),
+            font=("Arial", 9),
+            bg=theme["section_bg"],
+            fg=theme["text_secondary"],
+            wraplength=560,
+            justify="left",
+        ).pack(anchor="w", padx=14, pady=(0, 10))
+
+    def _on_theme_var_changed(self, *_args):
+        try:
+            label = self.theme_var.get()
+        except tk.TclError:
+            return
+        options = getattr(self, "_theme_options", None) or theme.available_themes()
+        new_theme = options.get(label)
+        if not new_theme:
+            return
+        if new_theme == theme.current_name:
+            return
+        # set_theme persists via the attached SettingsManager and
+        # notifies every subscribed window (including this one, which
+        # rebuilds itself via _apply_theme).
+        theme.set_theme(new_theme)
+
+    def _on_import_theme(self):
+        """Pick a JSON file, register it as a new theme, switch to it."""
+        path = filedialog.askopenfilename(
+            parent=self,
+            title="Select a theme JSON file",
+            filetypes=[("Theme JSON (*.json)", "*.json"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+        ok, result = theme.import_theme(path)
+        if not ok:
+            messagebox.showerror("Import theme", result, parent=self)
+            return
+        # ``result`` is the registered theme name. Switching to it
+        # triggers _apply_theme, which rebuilds the section and the
+        # dropdown picks up the new option.
+        theme.set_theme(result)
+        messagebox.showinfo(
+            "Theme imported",
+            f"Theme '{result}' imported and applied.",
+            parent=self,
+        )
 
     # ------------------------------------------------------------------
     # Section: Security (auto-logout, renewal, clipboard, strength)
@@ -140,13 +302,9 @@ class SettingsWindow(tk.Toplevel):
     def _build_security_section(self, parent):
         frame = self._make_section(parent, "Security")
 
-        # IMPORTANT: every StringVar passes ``master=self`` so that it is
-        # bound to THIS Toplevel's Tk root. Without this, when LoginWindow
-        # and MainMenu are both alive (each is its own Tk root), the
-        # StringVar silently attaches to the LoginWindow's root and the
-        # combobox here (which lives on MainMenu's root) cannot read or
-        # write its value -- causing _on_save to KeyError on "" and
-        # silently leaving the JSON file at defaults.
+        # IMPORTANT: every StringVar passes ``master=self`` so it binds
+        # to THIS Toplevel's Tk root (otherwise multi-root setups can
+        # leave the variable unread by the combobox).
 
         # Auto-logout
         self.auto_logout_var = tk.StringVar(
@@ -262,21 +420,19 @@ class SettingsWindow(tk.Toplevel):
                 "vault. Your vault will be re-encrypted with the new key."
             ),
             font=("Arial", 9),
-            bg="#ffffff",
-            fg="#666666",
+            bg=theme["section_bg"],
+            fg=theme["text_secondary"],
             wraplength=560,
             justify="left",
         ).pack(anchor="w", padx=14, pady=(2, 6))
 
+        change_style = theme.primary_button_style()
+        change_style.update(font=("Arial", 11, "bold"), width=28)
         tk.Button(
             frame,
             text="Change Master Password...",
             command=self._open_change_password_dialog,
-            font=("Arial", 11, "bold"),
-            bg="#2196F3",
-            fg="white",
-            cursor="hand2",
-            width=28,
+            **change_style,
         ).pack(anchor="w", padx=14, pady=(0, 10))
 
     # ------------------------------------------------------------------
@@ -293,63 +449,68 @@ class SettingsWindow(tk.Toplevel):
                 "exported vault."
             ),
             font=("Arial", 9),
-            bg="#ffffff",
-            fg="#666666",
+            bg=theme["section_bg"],
+            fg=theme["text_secondary"],
             wraplength=560,
             justify="left",
         ).pack(anchor="w", padx=14, pady=(2, 6))
 
-        row = tk.Frame(frame, bg="#ffffff")
+        row = tk.Frame(frame, bg=theme["section_bg"])
         row.pack(anchor="w", padx=14, pady=(0, 12))
 
+        export_style = theme.success_button_style()
+        export_style.update(font=("Arial", 11, "bold"), width=18)
         tk.Button(
             row,
             text="Export Vault...",
             command=self._on_export,
-            font=("Arial", 11, "bold"),
-            bg="#4CAF50",
-            fg="white",
-            cursor="hand2",
-            width=18,
+            **export_style,
         ).pack(side=tk.LEFT, padx=(0, 10))
 
+        import_style = theme.warn_button_style()
+        import_style.update(font=("Arial", 11, "bold"), width=18)
         tk.Button(
             row,
             text="Import Vault...",
             command=self._on_import,
-            font=("Arial", 11, "bold"),
-            bg="#FF9800",
-            fg="white",
-            cursor="hand2",
-            width=18,
+            **import_style,
         ).pack(side=tk.LEFT)
 
     # ------------------------------------------------------------------
     # Section / dropdown builders
     # ------------------------------------------------------------------
     def _make_section(self, parent, title: str) -> tk.Frame:
-        outer = tk.Frame(parent, bg="#ffffff", relief=tk.RIDGE, borderwidth=1)
+        outer = tk.Frame(
+            parent,
+            bg=theme["section_bg"],
+            relief=tk.RIDGE,
+            borderwidth=1,
+            highlightbackground=theme["section_border"],
+        )
         outer.pack(fill=tk.X, pady=8, padx=2)
 
         tk.Label(
             outer,
             text=title,
             font=("Arial", 13, "bold"),
-            bg="#ffffff",
-            fg="#2196F3",
+            bg=theme["section_bg"],
+            fg=theme["accent"],
         ).pack(anchor="w", padx=14, pady=(10, 4))
 
         return outer
 
     def _make_dropdown(self, parent, *, label, description, variable, options):
-        row = tk.Frame(parent, bg="#ffffff")
+        section_bg = theme["section_bg"]
+
+        row = tk.Frame(parent, bg=section_bg)
         row.pack(fill=tk.X, padx=14, pady=(4, 8))
 
         tk.Label(
             row,
             text=label,
             font=("Arial", 11, "bold"),
-            bg="#ffffff",
+            bg=section_bg,
+            fg=theme["text_primary"],
         ).grid(row=0, column=0, sticky="w")
 
         combo = ttk.Combobox(
@@ -359,6 +520,7 @@ class SettingsWindow(tk.Toplevel):
             state="readonly",
             width=22,
             font=("Arial", 10),
+            style="BlueVault.TCombobox",
         )
         combo.grid(row=0, column=1, padx=(10, 0), sticky="e")
 
@@ -379,8 +541,8 @@ class SettingsWindow(tk.Toplevel):
             parent,
             text=description,
             font=("Arial", 9),
-            bg="#ffffff",
-            fg="#666666",
+            bg=section_bg,
+            fg=theme["text_secondary"],
             wraplength=560,
             justify="left",
         ).pack(anchor="w", padx=14, pady=(0, 8))
@@ -444,6 +606,16 @@ class SettingsWindow(tk.Toplevel):
                 sm.get_account_sort_by(),
             ),
         )
+        # Theme dropdown options are dynamic (built-ins + imports), so
+        # build the lookup table on the fly.
+        sm.set(
+            "theme",
+            resolve(
+                theme.available_themes(),
+                self.theme_var.get(),
+                sm.get_theme(),
+            ),
+        )
 
         print(
             f"[settings] saving for {self.username}: "
@@ -451,7 +623,8 @@ class SettingsWindow(tk.Toplevel):
             f"renewal={sm.get_password_renewal_days()}, "
             f"clipboard={sm.get_clipboard_autoclear_seconds()}, "
             f"strength={sm.get_password_strength_requirement()!r}, "
-            f"sort={sm.get_account_sort_by()!r}"
+            f"sort={sm.get_account_sort_by()!r}, "
+            f"theme={sm.get_theme()!r}"
         )
 
         if sm.save():
@@ -573,7 +746,7 @@ class SettingsWindow(tk.Toplevel):
         dlg = tk.Toplevel(self)
         dlg.title("Import mode")
         dlg.geometry("420x210")
-        dlg.configure(bg="#f0f0f0")
+        dlg.configure(bg=theme["app_bg"])
         dlg.transient(self)
         dlg.grab_set()
         dlg.resizable(False, False)
@@ -582,7 +755,8 @@ class SettingsWindow(tk.Toplevel):
             dlg,
             text="How would you like to import?",
             font=("Arial", 13, "bold"),
-            bg="#f0f0f0",
+            bg=theme["app_bg"],
+            fg=theme["text_primary"],
         ).pack(pady=(14, 4))
 
         tk.Label(
@@ -593,8 +767,8 @@ class SettingsWindow(tk.Toplevel):
                 "ones from the import (no duplicates)."
             ),
             font=("Arial", 9),
-            bg="#f0f0f0",
-            fg="#666666",
+            bg=theme["app_bg"],
+            fg=theme["text_secondary"],
             wraplength=380,
             justify="left",
         ).pack(padx=14, pady=(0, 10))
@@ -605,40 +779,34 @@ class SettingsWindow(tk.Toplevel):
             result["mode"] = mode
             dlg.destroy()
 
-        btns = tk.Frame(dlg, bg="#f0f0f0")
+        btns = tk.Frame(dlg, bg=theme["app_bg"])
         btns.pack(pady=(0, 10))
 
+        override_style = theme.danger_button_style()
+        override_style.update(font=("Arial", 11, "bold"), width=12)
         tk.Button(
             btns,
             text="Override",
             command=lambda: pick("override"),
-            font=("Arial", 11, "bold"),
-            bg="#F44336",
-            fg="white",
-            width=12,
-            cursor="hand2",
+            **override_style,
         ).pack(side=tk.LEFT, padx=6)
 
+        append_style = theme.success_button_style()
+        append_style.update(font=("Arial", 11, "bold"), width=12)
         tk.Button(
             btns,
             text="Append",
             command=lambda: pick("append"),
-            font=("Arial", 11, "bold"),
-            bg="#4CAF50",
-            fg="white",
-            width=12,
-            cursor="hand2",
+            **append_style,
         ).pack(side=tk.LEFT, padx=6)
 
+        cancel_style = theme.secondary_button_style()
+        cancel_style.update(font=("Arial", 11), width=10)
         tk.Button(
             btns,
             text="Cancel",
             command=dlg.destroy,
-            font=("Arial", 11),
-            bg="#9E9E9E",
-            fg="white",
-            width=10,
-            cursor="hand2",
+            **cancel_style,
         ).pack(side=tk.LEFT, padx=6)
 
         self.wait_window(dlg)
@@ -659,7 +827,7 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
 
         self.title("Change master password - BlueVault")
         self.geometry("460x380")
-        self.configure(bg="#f0f0f0")
+        self.configure(bg=theme["app_bg"])
         self.resizable(False, False)
         self.transient(master)
         self.grab_set()
@@ -671,42 +839,30 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
             self,
             text="Change master password",
             font=("Arial", 16, "bold"),
-            bg="#f0f0f0",
+            bg=theme["app_bg"],
+            fg=theme["accent"],
         ).pack(pady=(16, 8))
 
-        form = tk.Frame(self, bg="#f0f0f0")
+        form = tk.Frame(self, bg=theme["app_bg"])
         form.pack(pady=10)
 
-        tk.Label(
-            form,
-            text="Current password:",
-            font=("Arial", 11),
-            bg="#f0f0f0",
-        ).grid(row=0, column=0, sticky="e", padx=8, pady=6)
-        self.current_entry = tk.Entry(form, font=("Arial", 11), width=26, show="*")
-        self.current_entry.grid(row=0, column=1, padx=8, pady=6)
+        def add_row(row, text, entry_attr):
+            tk.Label(
+                form,
+                text=text,
+                font=("Arial", 11),
+                bg=theme["app_bg"],
+                fg=theme["text_primary"],
+            ).grid(row=row, column=0, sticky="e", padx=8, pady=6)
+            entry = tk.Entry(form, font=("Arial", 11), width=26, show="*",
+                             **theme.entry_style())
+            entry.grid(row=row, column=1, padx=8, pady=6)
+            setattr(self, entry_attr, entry)
 
-        tk.Label(
-            form,
-            text="New password:",
-            font=("Arial", 11),
-            bg="#f0f0f0",
-        ).grid(row=1, column=0, sticky="e", padx=8, pady=6)
-        self.new_entry = tk.Entry(form, font=("Arial", 11), width=26, show="*")
-        self.new_entry.grid(row=1, column=1, padx=8, pady=6)
+        add_row(0, "Current password:", "current_entry")
+        add_row(1, "New password:", "new_entry")
+        add_row(2, "Confirm new password:", "confirm_entry")
 
-        tk.Label(
-            form,
-            text="Confirm new password:",
-            font=("Arial", 11),
-            bg="#f0f0f0",
-        ).grid(row=2, column=0, sticky="e", padx=8, pady=6)
-        self.confirm_entry = tk.Entry(form, font=("Arial", 11), width=26, show="*")
-        self.confirm_entry.grid(row=2, column=1, padx=8, pady=6)
-
-        # Show/hide toggle.
-        # ``master=self`` avoids attaching to the wrong Tk root when the
-        # app has multiple roots (LoginWindow + MainMenu).
         self.show_var = tk.BooleanVar(master=self, value=False)
         tk.Checkbutton(
             self,
@@ -714,34 +870,21 @@ class ChangeMasterPasswordDialog(tk.Toplevel):
             variable=self.show_var,
             command=self._toggle_show,
             font=("Arial", 10),
-            bg="#f0f0f0",
+            **theme.checkbutton_style(on="app_bg"),
         ).pack(pady=(2, 6))
 
-        # Buttons
-        btns = tk.Frame(self, bg="#f0f0f0")
+        btns = tk.Frame(self, bg=theme["app_bg"])
         btns.pack(pady=10)
 
-        tk.Button(
-            btns,
-            text="Change Password",
-            command=self._on_confirm,
-            font=("Arial", 11, "bold"),
-            bg="#4CAF50",
-            fg="white",
-            width=16,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=6)
+        change_style = theme.success_button_style()
+        change_style.update(font=("Arial", 11, "bold"), width=16)
+        tk.Button(btns, text="Change Password", command=self._on_confirm,
+                  **change_style).pack(side=tk.LEFT, padx=6)
 
-        tk.Button(
-            btns,
-            text="Cancel",
-            command=self.destroy,
-            font=("Arial", 11),
-            bg="#9E9E9E",
-            fg="white",
-            width=10,
-            cursor="hand2",
-        ).pack(side=tk.LEFT, padx=6)
+        cancel_style = theme.secondary_button_style()
+        cancel_style.update(font=("Arial", 11), width=10)
+        tk.Button(btns, text="Cancel", command=self.destroy,
+                  **cancel_style).pack(side=tk.LEFT, padx=6)
 
         self.current_entry.focus()
 

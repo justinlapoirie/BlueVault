@@ -6,30 +6,64 @@ import os
 # Ensure the parent directory is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from ui_controller import theme
+
 
 class PasswordAuditorApp(tk.Toplevel):
     """Password Auditor as a Toplevel window that analyzes password strength."""
-    
+
     def __init__(self, master=None):
         super().__init__(master)
         self.title("Password Auditor - BlueVault")
         self.geometry("550x600")
-        self.configure(bg="#23272a")
-        
+        self.configure(bg=theme["app_bg"])
+
         # Import and create password auditor instance
         from services.password_auditor import PasswordAuditor
         self.password_auditor = PasswordAuditor()
-        
+
+        # Persistent state
+        self.show_password_var = tk.BooleanVar(master=self, value=False)
+        self._last_report = None
+
         self.create_widgets()
 
+        # Theme integration
+        theme.subscribe(self._apply_theme)
+        self.bind("<Destroy>", self._on_destroy, add="+")
+
+    # ------------------------------------------------------------------
+    # Theme integration
+    # ------------------------------------------------------------------
+    def _apply_theme(self):
+        try:
+            saved_password = self.password_entry.get() if hasattr(self, "password_entry") else ""
+            for child in self.winfo_children():
+                child.destroy()
+            self.configure(bg=theme["app_bg"])
+            self.create_widgets()
+            if saved_password:
+                self.password_entry.insert(0, saved_password)
+            if self._last_report:
+                self.display_results(self._last_report)
+        except tk.TclError:
+            pass
+
+    def _on_destroy(self, event):
+        if event.widget is self:
+            theme.unsubscribe(self._apply_theme)
+
+    # ------------------------------------------------------------------
+    # Widget construction
+    # ------------------------------------------------------------------
     def create_widgets(self):
         # Title
         title_label = tk.Label(
-            self, 
-            text="Password Auditor", 
+            self,
+            text="Password Auditor",
             font=("Arial", 18, "bold"),
-            bg="#23272a",
-            fg="#7289da"
+            bg=theme["app_bg"],
+            fg=theme["accent"],
         )
         title_label.pack(pady=16)
 
@@ -38,57 +72,44 @@ class PasswordAuditorApp(tk.Toplevel):
             self,
             text="Enter or paste a password to check its security",
             font=("Arial", 11),
-            bg="#23272a",
-            fg="#bbbbbb"
+            bg=theme["app_bg"],
+            fg=theme["text_secondary"],
         )
         instructions.pack(pady=5)
 
         # Frame for password input
         input_frame = tk.LabelFrame(
-            self, 
-            text="Password to Audit", 
+            self,
+            text="Password to Audit",
             font=("Arial", 11, "bold"),
-            bg="#23272a",
-            fg="#ffffff",
-            padx=20, 
+            padx=20,
             pady=15,
-            highlightbackground="#7289da",
-            highlightcolor="#7289da"
+            **theme.labelframe_style(on="app_bg"),
         )
         input_frame.pack(pady=15, padx=20, fill=tk.BOTH)
 
         # Password entry with show/hide toggle
-        entry_container = tk.Frame(input_frame, bg="#23272a")
+        entry_container = tk.Frame(input_frame, bg=theme["app_bg"])
         entry_container.pack(fill=tk.X)
 
         self.password_entry = tk.Entry(
-            entry_container, 
+            entry_container,
             font=("Courier", 12),
             width=35,
             show="*",
-            bg="#2c2f33",
-            fg="#ffffff",
-            insertbackground="#ffffff",
-            relief=tk.FLAT,
-            highlightthickness=1,
-            highlightbackground="#444"
+            **theme.entry_style(),
         )
         self.password_entry.pack(side=tk.LEFT, padx=(0, 10))
         self.password_entry.focus()
 
         # Toggle visibility button
-        self.show_password_var = tk.BooleanVar(value=False)
         self.toggle_button = tk.Checkbutton(
             entry_container,
             text="Show",
             variable=self.show_password_var,
             command=self.toggle_password_visibility,
             font=("Arial", 9),
-            bg="#23272a",
-            fg="#ffffff",
-            activebackground="#23272a",
-            selectcolor="#23272a",
-            highlightbackground="#23272a"
+            **theme.checkbutton_style(on="app_bg"),
         )
         self.toggle_button.pack(side=tk.LEFT)
 
@@ -96,76 +117,70 @@ class PasswordAuditorApp(tk.Toplevel):
         self.password_entry.bind("<Return>", lambda e: self.audit_password())
 
         # Audit button
-        button_style = {
-            "font": ("Arial", 12, "bold"),
-            "bg": "#2196F3",
-            "fg": "white",
-            "activebackground": "#1976D2",
-            "activeforeground": "#ffffff",
-            "cursor": "hand2",
-            "relief": tk.FLAT,
-            "bd": 0,
-            "highlightbackground": "#23272a",
-            "highlightthickness": 0,
-            "padx": 20,
-            "pady": 10
-        }
+        audit_style = theme.primary_button_style()
+        audit_style.update(padx=20, pady=10)
         self.audit_button = tk.Button(
             self,
             text="Audit Password",
             command=self.audit_password,
-            **button_style
+            **audit_style,
         )
         self.audit_button.pack(pady=15)
 
         # Results frame
+        results_bg = theme["surface_bg"]
+        results_fg = theme["text_primary"]
         results_frame = tk.LabelFrame(
             self,
             text="Security Analysis",
             font=("Arial", 11, "bold"),
-            bg="#f0f0f0",
+            bg=results_bg,
+            fg=results_fg,
             padx=20,
-            pady=15
+            pady=15,
+            highlightbackground=theme["section_border"],
         )
         results_frame.pack(pady=10, padx=20, fill=tk.BOTH, expand=True)
 
         # Score display
-        score_container = tk.Frame(results_frame, bg="#f0f0f0")
+        score_container = tk.Frame(results_frame, bg=results_bg)
         score_container.pack(fill=tk.X, pady=5)
 
         tk.Label(
             score_container,
             text="Strength:",
             font=("Arial", 11, "bold"),
-            bg="#f0f0f0"
+            bg=results_bg,
+            fg=results_fg,
         ).pack(side=tk.LEFT)
 
         self.score_label = tk.Label(
             score_container,
             text="—",
             font=("Arial", 14, "bold"),
-            bg="#f0f0f0",
-            fg="#666666"
+            bg=results_bg,
+            fg=theme["status_neutral"],
         )
         self.score_label.pack(side=tk.LEFT, padx=10)
 
         # Entropy display
-        entropy_container = tk.Frame(results_frame, bg="#f0f0f0")
+        entropy_container = tk.Frame(results_frame, bg=results_bg)
         entropy_container.pack(fill=tk.X, pady=5)
 
         tk.Label(
             entropy_container,
             text="Entropy:",
             font=("Arial", 11),
-            bg="#f0f0f0"
+            bg=results_bg,
+            fg=results_fg,
         ).pack(side=tk.LEFT)
 
         self.entropy_label = tk.Label(
             entropy_container,
             text="—",
             font=("Arial", 11),
-            bg="#f0f0f0",
-            fg="#666666"
+            bg=results_bg,
+            fg=theme["status_neutral"],
         )
         self.entropy_label.pack(side=tk.LEFT, padx=10)
 
@@ -174,7 +189,8 @@ class PasswordAuditorApp(tk.Toplevel):
             results_frame,
             text="",
             font=("Arial", 11, "bold"),
-            bg="#f0f0f0"
+            bg=results_bg,
+            fg=results_fg,
         )
         self.breached_label.pack(pady=10)
 
@@ -183,7 +199,8 @@ class PasswordAuditorApp(tk.Toplevel):
             results_frame,
             text="Warnings & Recommendations:",
             font=("Arial", 10, "bold"),
-            bg="#f0f0f0"
+            bg=results_bg,
+            fg=results_fg,
         ).pack(anchor="w", pady=(10, 5))
 
         self.warnings_text = scrolledtext.ScrolledText(
@@ -193,7 +210,10 @@ class PasswordAuditorApp(tk.Toplevel):
             width=50,
             wrap=tk.WORD,
             state=tk.DISABLED,
-            bg="#ffffff"
+            bg=theme["surface_bg"],
+            fg=theme["text_primary"],
+            insertbackground=theme["input_caret"],
+            relief=tk.FLAT,
         )
         self.warnings_text.pack(fill=tk.BOTH, expand=True)
 
@@ -215,6 +235,7 @@ class PasswordAuditorApp(tk.Toplevel):
         # Get audit results
         try:
             report = self.password_auditor.audit_password(password)
+            self._last_report = report
             self.display_results(report)
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred during audit:\n{str(e)}")
@@ -224,50 +245,48 @@ class PasswordAuditorApp(tk.Toplevel):
         # Display score with color coding
         score = report["score"]
         score_colors = {
-            "Weak": "#F44336",      # Red
-            "Moderate": "#FF9800",  # Orange
-            "Strong": "#4CAF50"     # Green
+            "Weak":     theme["score_weak"],
+            "Moderate": theme["score_moderate"],
+            "Strong":   theme["score_strong"],
         }
-        
+
         self.score_label.config(
             text=score,
-            fg=score_colors.get(score, "#666666")
+            fg=score_colors.get(score, theme["status_neutral"]),
         )
 
         # Display entropy
         entropy = report["entropy"]
-        self.entropy_label.config(
-            text=f"{entropy:.2f} bits"
-        )
+        self.entropy_label.config(text=f"{entropy:.2f} bits")
 
         # Display breached status
         if report["breached"]:
             self.breached_label.config(
                 text="⚠️ PASSWORD FOUND IN DATA BREACH ⚠️",
-                fg="#F44336"
+                fg=theme["status_danger"],
             )
         else:
             self.breached_label.config(
                 text="✓ Not found in known breaches",
-                fg="#4CAF50"
+                fg=theme["status_success"],
             )
 
         # Display warnings
         self.warnings_text.config(state=tk.NORMAL)
         self.warnings_text.delete(1.0, tk.END)
-        
+
         if report["warnings"]:
             for i, warning in enumerate(report["warnings"], 1):
                 self.warnings_text.insert(tk.END, f"{i}. {warning}\n\n")
         else:
             self.warnings_text.insert(tk.END, "No warnings. This is a strong password!")
-        
+
         self.warnings_text.config(state=tk.DISABLED)
 
 
 # For standalone testing
 if __name__ == "__main__":
     root = tk.Tk()
-    root.withdraw()  # Hide the root window
+    root.withdraw()
     app = PasswordAuditorApp()
     app.mainloop()
