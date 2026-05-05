@@ -49,4 +49,6 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
     │   └── entropy_calculator.py     # Entropy calculation used in account creationn and password auditor
 </pre>
 
+<img width="1917" height="1076" alt="MainMenuLight" src="https://github.com/user-attachments/assets/743a6bd5-191b-4643-9f41-4b650953b855" />
+
 
