@@ -19,6 +19,10 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
 - Audit log showing recent changes
 - Email incorporation for 2FA, account recovery, verification, etc
 
+### Package Requirements:
+- cryptography
+- pyzipper
+
 ## File Structure:
 <pre>
     BlueVault/
