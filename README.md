@@ -7,15 +7,14 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
 - Login/Logout feature with secure account info storage and proper error handling
 - main menu with clean GUI
 - Account management system that allows users to store account information to various applications
-- Settings manager that allows users to customize security features, password requirements and reminders, etc
+- Settings manager that allows users to customize security features, password requirements and reminders, and appearance
 - Password Generator with customizable parameters and copy-to-clipboard functionality
 - Password Auditor that checks strength of password and compares it to known breaches
 - import/export user data "vault" as encrpyted zip file
 
-## In Development (By Priority):
-- UI overhaul
+## Future Development:
 - .EXE desktop application implementation
-- Session security, auto-logout on sleep, shutdown, etc
+- Greater ession security, auto-logout on sleep, shutdown, etc
 - Audit log showing recent changes
 - Email incorporation for 2FA, account recovery, verification, etc
 
