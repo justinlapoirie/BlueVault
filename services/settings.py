@@ -14,6 +14,20 @@ import tempfile
 import zipfile
 from datetime import datetime
 
+# pyzipper provides AES-encrypted zip files (the standard "Zip 2.0
+# AES" extension that 7-Zip / WinZip / Keka can open). We use it to
+# password-protect vault exports with the user's master password. The
+# import is wrapped so that a missing dependency surfaces a clear,
+# actionable error rather than a cryptic ImportError at call time.
+try:
+    import pyzipper
+    _PYZIPPER_AVAILABLE = True
+    _PYZIPPER_IMPORT_ERROR = None
+except ImportError as _pyzipper_err:  # pragma: no cover - exercised only when missing
+    pyzipper = None  # type: ignore[assignment]
+    _PYZIPPER_AVAILABLE = False
+    _PYZIPPER_IMPORT_ERROR = _pyzipper_err
+
 
 # -----------------------------------------------------------------------------
 # Defaults and allowed option tables
@@ -251,11 +265,15 @@ class SettingsManager:
     def export_vault(self, master_password: str, destination: str | None = None):
         """
         Bundle the user's (already-encrypted) vault file plus a small
-        manifest into a zip in the user's Downloads directory.
+        manifest into a *password-protected* zip in the user's Downloads
+        directory. The zip is AES-256 encrypted with the user's master
+        password, so the file is unreadable outside of BlueVault (or
+        any AES-zip-aware tool that knows the password).
 
         Args:
             master_password: verifies the user can actually decrypt the
-                             vault before we export anything.
+                             vault before we export anything; also used
+                             as the zip password.
             destination: optional override for output folder.
 
         Returns:
@@ -263,7 +281,17 @@ class SettingsManager:
         """
         from services.account import AccountManager
 
-        # Sanity check: ensure the password decrypts the vault
+        if not _PYZIPPER_AVAILABLE:
+            return False, (
+                "Vault export requires the 'pyzipper' package for AES "
+                "encryption. Install it with:\n\n    pip install pyzipper\n\n"
+                f"Underlying import error: {_PYZIPPER_IMPORT_ERROR}"
+            )
+
+        if not master_password:
+            return False, "Master password is required to export the vault."
+
+        # Sanity check: ensure the password decrypts the vault.
         try:
             am = AccountManager(self.username, master_password)
             _ = am._load_vault()
@@ -283,17 +311,51 @@ class SettingsManager:
 
         manifest = {
             "app": "BlueVault",
-            "version": 1,
+            "version": 2,  # bumped: v2 zips are password-protected
             "username": self.username,
             "exported_at": datetime.now().isoformat(),
         }
 
+        # Read vault content into memory so we can use writestr() (which
+        # honours setpassword(); ZipFile.write() of an external file
+        # does not always carry the password through pyzipper).
         try:
-            with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-                zf.write(vault_path, arcname=f"vault_{self.username}.json")
-                zf.writestr("manifest.json", json.dumps(manifest, indent=2))
+            with open(vault_path, "rb") as f:
+                vault_bytes = f.read()
+        except OSError as e:
+            return False, f"Failed to read vault file: {e}"
+
+        try:
+            with pyzipper.AESZipFile(
+                zip_path,
+                "w",
+                compression=pyzipper.ZIP_DEFLATED,
+                encryption=pyzipper.WZ_AES,
+            ) as zf:
+                zf.setpassword(master_password.encode("utf-8"))
+                # 256-bit AES (default in pyzipper is 256, but be explicit)
+                zf.setencryption(pyzipper.WZ_AES, nbits=256)
+                zf.writestr(f"vault_{self.username}.json", vault_bytes)
+                zf.writestr(
+                    "manifest.json",
+                    json.dumps(manifest, indent=2).encode("utf-8"),
+                )
         except Exception as e:
-            return False, f"Failed to write export zip: {e}"
+            # Best-effort: remove a partial zip so the user doesn't see
+            # an unusable file in Downloads.
+            try:
+                if os.path.exists(zip_path):
+                    os.remove(zip_path)
+            except OSError:
+                pass
+            return False, f"Failed to write encrypted export zip: {e}"
+
+        # Lock the file down to owner-only on platforms that honour it.
+        try:
+            import stat as _stat
+            os.chmod(zip_path, _stat.S_IRUSR | _stat.S_IWUSR)
+        except OSError:
+            pass
 
         return True, zip_path
 
@@ -302,12 +364,19 @@ class SettingsManager:
         """
         Import an exported BlueVault zip into the current user's vault.
 
+        The zip is expected to be password-protected with the same
+        master password that the user is currently logged in with.
+        BlueVault v2 exports are AES-encrypted; v1 exports were plain
+        zips (still accepted for backwards compatibility).
+
         Args:
             zip_path: path to the exported .zip
             master_password: current user's master password (must match
                              the exporter's password because the same key
-                             is derived from it; we also verify the
-                             embedded username matches this user).
+                             is derived from it; also used as the zip
+                             archive password for v2 exports). We also
+                             verify the embedded username matches this
+                             user.
             mode: "override" to replace, "append" to merge unique entries.
 
         Returns:
@@ -319,64 +388,76 @@ class SettingsManager:
             return False, f"Unknown import mode: {mode}"
         if not os.path.isfile(zip_path):
             return False, "Import file not found."
+        if not master_password:
+            return False, "Master password is required to import a vault."
 
-        # Extract zip contents to a temp directory
+        # Decide which zip implementation to use. We probe the file
+        # for the AES extra-field marker; if present we MUST use
+        # pyzipper (stdlib zipfile cannot read AES zips).
+        is_aes = self._zip_uses_aes(zip_path)
+        if is_aes and not _PYZIPPER_AVAILABLE:
+            return False, (
+                "Import file is AES-encrypted, but the 'pyzipper' package "
+                "is not installed. Install it with:\n\n    pip install pyzipper"
+            )
+
+        manifest = None
+        imported_accounts = None
+        tmpdir = tempfile.mkdtemp(prefix="bluevault_import_")
         try:
-            with zipfile.ZipFile(zip_path, "r") as zf:
-                names = zf.namelist()
-                if "manifest.json" not in names:
-                    return False, "Import file is missing manifest.json."
-                with zf.open("manifest.json") as mf:
-                    manifest = json.loads(mf.read().decode("utf-8"))
-
-                expected_vault_name = f"vault_{manifest.get('username', '')}.json"
-                if expected_vault_name not in names:
-                    return False, (
-                        "Import file is missing the expected vault entry "
-                        f"({expected_vault_name})."
-                    )
-
-                # Verify username matches the current user
-                if manifest.get("username") != self.username:
-                    return False, (
-                        "Master login mismatch: exported vault belongs to "
-                        f"'{manifest.get('username')}', but you are logged "
-                        f"in as '{self.username}'."
-                    )
-
-                # Extract vault file to temp
-                tmpdir = tempfile.mkdtemp(prefix="bluevault_import_")
-                try:
-                    zf.extract(expected_vault_name, tmpdir)
-                    extracted_path = os.path.join(tmpdir, expected_vault_name)
-
-                    # Try to decrypt with current master password.
-                    # We temporarily swap in the extracted vault by pointing
-                    # a new AccountManager at it, then reading its contents.
-                    imported_accounts = self._decrypt_vault_file(
-                        extracted_path, master_password
-                    )
-                    if imported_accounts is None:
-                        return False, (
-                            "Could not decrypt imported vault. The master "
-                            "password on this device does not match the "
-                            "password used when the vault was exported."
+            try:
+                if is_aes:
+                    with pyzipper.AESZipFile(zip_path, "r") as zf:
+                        zf.setpassword(master_password.encode("utf-8"))
+                        manifest, imported_accounts = self._read_export_zip(
+                            zf, tmpdir, master_password
                         )
-                finally:
-                    shutil.rmtree(tmpdir, ignore_errors=True)
-        except zipfile.BadZipFile:
-            return False, "Import file is not a valid zip."
-        except Exception as e:
-            return False, f"Failed to read import file: {e}"
+                else:
+                    with zipfile.ZipFile(zip_path, "r") as zf:
+                        manifest, imported_accounts = self._read_export_zip(
+                            zf, tmpdir, master_password
+                        )
+            except RuntimeError as e:
+                # pyzipper raises RuntimeError("Bad password ...") on
+                # the wrong password.
+                msg = str(e).lower()
+                if "password" in msg or "decrypt" in msg:
+                    return False, (
+                        "Wrong master password for this export. The zip "
+                        "is encrypted with the master password used at "
+                        "export time; that does not match the password "
+                        "you are currently logged in with."
+                    )
+                return False, f"Failed to read import file: {e}"
+            except zipfile.BadZipFile:
+                return False, "Import file is not a valid zip."
+            except _ImportRejected as rej:
+                return False, str(rej)
+            except Exception as e:
+                return False, f"Failed to read import file: {e}"
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
-        # Now merge / override into the current user's vault
+        if manifest is None or imported_accounts is None:
+            return False, "Import file is missing required content."
+
+        # Verify the username embedded in the manifest matches the
+        # logged-in user. (For AES zips this is a belt-and-suspenders
+        # check on top of the password match.)
+        if manifest.get("username") != self.username:
+            return False, (
+                "Master login mismatch: exported vault belongs to "
+                f"'{manifest.get('username')}', but you are logged "
+                f"in as '{self.username}'."
+            )
+
+        # Now merge / override into the current user's vault.
         try:
             current_am = AccountManager(self.username, master_password)
             current = current_am._load_vault()
 
             if mode == "override":
                 new_vault = list(imported_accounts)
-                # Re-number ids cleanly
                 for i, acc in enumerate(new_vault, start=1):
                     acc["id"] = i
                 merged_count = len(new_vault)
@@ -385,8 +466,8 @@ class SettingsManager:
                     return False, "Failed to write imported vault."
                 return True, f"Override complete. Replaced vault with {merged_count} accounts."
 
-            # Append mode - only add accounts whose (account_name, username)
-            # are not already present in the current vault.
+            # Append mode: only add accounts whose (account_name, username)
+            # are not already present.
             existing_keys = {
                 (acc.get("account_name", "").lower(),
                  acc.get("username", "").lower())
@@ -403,7 +484,6 @@ class SettingsManager:
                 new_acc = dict(acc)
                 new_acc["id"] = next_id
                 next_id += 1
-                # Ensure last_copied key exists
                 new_acc.setdefault("last_copied", None)
                 current.append(new_acc)
                 existing_keys.add(key)
@@ -415,6 +495,53 @@ class SettingsManager:
             return True, f"Append complete. Added {added} new account(s)."
         except Exception as e:
             return False, f"Import failed: {e}"
+
+    # ------------------------------------------------------------------
+    # Export-zip helpers
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _zip_uses_aes(zip_path: str) -> bool:
+        """Detect whether a zip uses the WinZip-AES extension (extra-field id 0x9901)."""
+        try:
+            with open(zip_path, "rb") as f:
+                blob = f.read()
+        except OSError:
+            return False
+        return b"\x01\x99" in blob
+
+    def _read_export_zip(self, zf, tmpdir: str, master_password: str):
+        """Pull manifest + decrypted vault from an opened export zip."""
+        names = zf.namelist()
+        if "manifest.json" not in names:
+            raise _ImportRejected("Import file is missing manifest.json.")
+
+        try:
+            with zf.open("manifest.json") as mf:
+                manifest = json.loads(mf.read().decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            raise _ImportRejected(f"Manifest is corrupt: {e}")
+
+        expected_vault_name = f"vault_{manifest.get('username', '')}.json"
+        if expected_vault_name not in names:
+            raise _ImportRejected(
+                "Import file is missing the expected vault entry "
+                f"({expected_vault_name})."
+            )
+
+        try:
+            zf.extract(expected_vault_name, tmpdir)
+        except RuntimeError:
+            raise
+        extracted_path = os.path.join(tmpdir, expected_vault_name)
+
+        accounts = self._decrypt_vault_file(extracted_path, master_password)
+        if accounts is None:
+            raise _ImportRejected(
+                "Could not decrypt imported vault. The master password "
+                "on this device does not match the password used when "
+                "the vault was exported."
+            )
+        return manifest, accounts
 
     @staticmethod
     def _decrypt_vault_file(vault_file_path: str, master_password: str):
@@ -442,6 +569,10 @@ class SettingsManager:
             return json.loads(decrypted.decode())
         except (InvalidToken, ValueError, json.JSONDecodeError):
             return None
+
+
+class _ImportRejected(Exception):
+    """Internal: signal a structural / decryption rejection with a user-facing message."""
 
 
 # Quick test
