@@ -660,6 +660,77 @@ def get_theme() -> ThemeController:
 
 
 # -----------------------------------------------------------------------------
+# Window placement helpers
+# -----------------------------------------------------------------------------
+# These are kept here (rather than duplicated in every ui_*.py file) so
+# the rules for where popups appear live in one place. If you ever want
+# to change the bottom-right margin, taskbar reservation, or the way
+# fullscreen is achieved, this is the only file to touch.
+
+def maximize_window(window) -> None:
+    """
+    Maximize ``window`` to the user's screen, in the most platform-
+    friendly way available. Falls back to a screen-sized geometry
+    string if no native maximize state is supported.
+    """
+    # Windows: state("zoomed") is the standard maximize.
+    try:
+        window.state("zoomed")
+        return
+    except tk.TclError:
+        pass
+
+    # Linux (some WMs): -zoomed attribute.
+    try:
+        window.attributes("-zoomed", True)
+        return
+    except tk.TclError:
+        pass
+
+    # Fallback: hand-set geometry to the full screen.
+    try:
+        sw = window.winfo_screenwidth()
+        sh = window.winfo_screenheight()
+        window.geometry(f"{sw}x{sh}+0+0")
+    except tk.TclError:
+        pass
+
+
+def position_center(window, width: int, height: int) -> None:
+    """Size and centre a window on the primary screen."""
+    try:
+        sw = window.winfo_screenwidth()
+        sh = window.winfo_screenheight()
+    except tk.TclError:
+        sw, sh = 1920, 1080
+    x = max(0, (sw - width) // 2)
+    y = max(0, (sh - height) // 2)
+    window.geometry(f"{width}x{height}+{x}+{y}")
+
+
+def position_bottom_right(
+    window,
+    width: int,
+    height: int,
+    margin: int = 20,
+    taskbar_reserve: int = 60,
+) -> None:
+    """Dock a window to the bottom-right of the primary screen."""
+    try:
+        sw = window.winfo_screenwidth()
+        sh = window.winfo_screenheight()
+    except tk.TclError:
+        sw, sh = 1920, 1080
+
+    eff_width = min(width, sw - 2 * margin)
+    eff_height = min(height, sh - taskbar_reserve - margin)
+
+    x = max(0, sw - eff_width - margin)
+    y = max(0, sh - eff_height - taskbar_reserve)
+    window.geometry(f"{eff_width}x{eff_height}+{x}+{y}")
+
+
+# -----------------------------------------------------------------------------
 # Public API
 # -----------------------------------------------------------------------------
 __all__ = [
@@ -670,16 +741,16 @@ __all__ = [
     "ThemeController",
     "theme",
     "get_theme",
+    "maximize_window",
+    "position_center",
+    "position_bottom_right",
 ]
 
 
 # Quick self-test
 if __name__ == "__main__":
     print("Default theme:", theme.current_name)
-    print("Sample colors:")
     for k in ("app_bg", "accent", "btn_primary_bg", "text_primary"):
         print(f"  {k:14s} {theme[k]}")
     theme.toggle()
     print("After toggle:", theme.current_name)
-    for k in ("app_bg", "accent", "btn_primary_bg", "text_primary"):
-        print(f"  {k:14s} {theme[k]}")

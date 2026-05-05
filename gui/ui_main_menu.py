@@ -5,14 +5,22 @@ import os
 # Ensure the parent directory is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from ui_controller import theme
+from ui_controller import theme, maximize_window
 
 
 class MainMenu(tk.Tk):
     def __init__(self, username="User", login_window=None, auto_logout_time=300, master_password=None):
         super().__init__()
         self.title("BlueVault")
+
+        # Set a sensible base geometry first (used as the "restore"
+        # size if the user unmaximizes), then maximize so the main
+        # menu fills the user's screen on launch.
         self.geometry("1100x700")
+        maximize_window(self)
+        # Fallback for environments where maximize is a no-op:
+        # ensure we are at least full-screen-sized.
+        self.minsize(900, 600)
 
         # Store user info and login window reference
         self.username = username
@@ -67,17 +75,48 @@ class MainMenu(tk.Tk):
         theme.subscribe(self._apply_theme)
         self.bind("<Destroy>", self._on_destroy, add="+")
 
+        # Clicking the window's X button must shut the app down
+        # cleanly. Without this, Tk's default behaviour destroys the
+        # MainMenu Tk root but leaves any pending after() callbacks
+        # AND the (still-alive but withdrawn) LoginWindow Tk root
+        # behind, so the Python process keeps running and produces
+        # 'invalid command name "...update_timer"' tracebacks as
+        # those scheduled callbacks try to fire on the dead widget.
+        self.protocol("WM_DELETE_WINDOW", self._on_window_close)
+
     # ------------------------------------------------------------------
     # Theme integration
     # ------------------------------------------------------------------
     def _build_widgets(self):
         """(Re)create every child widget from scratch using current theme."""
+        # Tear down any existing widgets, AND drop the stale
+        # scrollable_frame attribute so a stray callback that fires
+        # mid-rebuild can detect "not ready yet" rather than touch a
+        # dead widget.
         for child in self.winfo_children():
             child.destroy()
+        if hasattr(self, "scrollable_frame"):
+            del self.scrollable_frame
+
         self.configure(bg=theme["app_bg"])
+
+        # Build the search variable BEFORE layout so the search Entry
+        # can bind to it via ``textvariable=self._search_var``, but DO
+        # NOT register the trace yet -- registering early caused
+        # ``refresh_accounts`` to fire before ``scrollable_frame`` was
+        # created (Tk fires a write event when the Entry first reads
+        # an empty StringVar). The trace is added at the bottom of
+        # this method, once the layout is fully constructed.
         self._search_var = tk.StringVar(master=self)
-        self._search_var.trace_add("write", lambda *_: self.refresh_accounts())
+
         self._create_layout()
+
+        # Now it is safe to wire the trace -- ``scrollable_frame``
+        # exists and ``refresh_accounts`` has already populated the
+        # initial card grid via ``_create_layout``.
+        self._search_var.trace_add(
+            "write", lambda *_: self.refresh_accounts()
+        )
 
     def _apply_theme(self):
         """Theme-change callback: rebuild header + content with new colors."""
@@ -90,6 +129,73 @@ class MainMenu(tk.Tk):
     def _on_destroy(self, event):
         if event.widget is self:
             theme.unsubscribe(self._apply_theme)
+
+    def _on_window_close(self):
+        """
+        Full-app shutdown handler bound to the X button.
+
+        Cancels every scheduled ``after()`` callback, tears down
+        any open child windows, unsubscribes from the theme
+        controller, then destroys BOTH the MainMenu and the
+        LoginWindow Tk roots so the Python process can exit
+        cleanly.
+        """
+        # Cancel auto-logout countdown.
+        if hasattr(self, "timer_id"):
+            try:
+                self.after_cancel(self.timer_id)
+            except Exception:
+                pass
+
+        # Cancel any pending clipboard auto-clear.
+        if self._clipboard_clear_after_id is not None:
+            try:
+                self.after_cancel(self._clipboard_clear_after_id)
+            except Exception:
+                pass
+            self._clipboard_clear_after_id = None
+
+        # Cancel any pending resize-debounce.
+        if getattr(self, "_resize_timer", None) is not None:
+            try:
+                self.after_cancel(self._resize_timer)
+            except Exception:
+                pass
+            self._resize_timer = None
+
+        # Close any open child Toplevels (settings, generator, auditor).
+        for attr in (
+            "password_generator_window",
+            "password_auditor_window",
+            "settings_window",
+        ):
+            w = getattr(self, attr, None)
+            if w is not None:
+                try:
+                    w.destroy()
+                except Exception:
+                    pass
+                setattr(self, attr, None)
+
+        # Drop the theme subscription so it cannot fire on dead widgets.
+        try:
+            theme.unsubscribe(self._apply_theme)
+        except Exception:
+            pass
+
+        # Destroy MainMenu first.
+        try:
+            self.destroy()
+        except Exception:
+            pass
+
+        # Destroy the original LoginWindow Tk root if it's still
+        # around (it was just withdrawn at login time, not destroyed).
+        if self.login_window is not None:
+            try:
+                self.login_window.destroy()
+            except Exception:
+                pass
 
     def _create_layout(self):
         """Build the two-pane layout: slim sidebar + content area."""
@@ -330,7 +436,20 @@ class MainMenu(tk.Tk):
 
     def refresh_accounts(self):
         """Load accounts and refresh the display."""
-        for widget in self.scrollable_frame.winfo_children():
+        # Defensive: a StringVar trace on the search box can fire
+        # before _create_layout has built the scrollable_frame (and
+        # also after it has been torn down during a theme rebuild).
+        # In those windows, just bail -- the next legitimate call
+        # will re-render once the widget actually exists.
+        sf = getattr(self, "scrollable_frame", None)
+        if sf is None:
+            return
+        try:
+            children = sf.winfo_children()
+        except tk.TclError:
+            # widget was destroyed mid-rebuild
+            return
+        for widget in children:
             widget.destroy()
 
         accounts = self.account_manager.get_all_accounts()

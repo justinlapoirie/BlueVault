@@ -6,7 +6,7 @@ import os
 # Ensure the parent directory is in sys.path so 'services' can be imported
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from ui_controller import theme
+from ui_controller import theme, position_bottom_right
 
 
 class PasswordGeneratorApp(tk.Toplevel):
@@ -15,7 +15,9 @@ class PasswordGeneratorApp(tk.Toplevel):
     def __init__(self, master=None):
         super().__init__(master)
         self.title("Password Generator - BlueVault")
-        self.geometry("600x500")
+        # Anchor to the bottom-right of the screen so the generator
+        # sits next to the main vault rather than over it.
+        position_bottom_right(self, 600, 500)
         self.configure(bg=theme["app_bg"])
 
         # Import and create password generator instance with defaults

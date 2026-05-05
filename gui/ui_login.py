@@ -15,7 +15,7 @@ class LoginWindow(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("BlueVault - Login")
-        self.geometry("500x400")
+        self.geometry("500x500")
         self.configure(bg=theme["app_bg"])
         theme.configure_ttk(self)
 
@@ -37,6 +37,20 @@ class LoginWindow(tk.Tk):
         # repaints the login screen.
         theme.subscribe(self._apply_theme)
         self.bind("<Destroy>", self._on_destroy, add="+")
+
+        # Clicking X must end the process cleanly.
+        self.protocol("WM_DELETE_WINDOW", self._on_window_close)
+
+    def _on_window_close(self):
+        """Clean shutdown when the login screen's X button is clicked."""
+        try:
+            theme.unsubscribe(self._apply_theme)
+        except Exception:
+            pass
+        try:
+            self.destroy()
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------
     # Theme integration
@@ -379,7 +393,7 @@ class LoginWindow(tk.Tk):
         )
 
         # If main menu is closed, show login again
-        # (This is handled in main menu's logout function)
+        # (handled in main menu's logout function)
 
 
 # For standalone testing

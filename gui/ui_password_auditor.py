@@ -6,7 +6,7 @@ import os
 # Ensure the parent directory is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from ui_controller import theme
+from ui_controller import theme, position_bottom_right
 
 
 class PasswordAuditorApp(tk.Toplevel):
@@ -15,7 +15,9 @@ class PasswordAuditorApp(tk.Toplevel):
     def __init__(self, master=None):
         super().__init__(master)
         self.title("Password Auditor - BlueVault")
-        self.geometry("550x600")
+        # Anchor to the bottom-right of the screen, matching the
+        # other tool pop-ups (generator, settings).
+        position_bottom_right(self, 550, 600)
         self.configure(bg=theme["app_bg"])
 
         # Import and create password auditor instance

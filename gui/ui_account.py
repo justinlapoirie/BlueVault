@@ -6,7 +6,7 @@ import os
 # Ensure the parent directory is in sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from ui_controller import theme
+from ui_controller import theme, position_center
 
 
 class AccountWindow(tk.Toplevel):
@@ -40,7 +40,9 @@ class AccountWindow(tk.Toplevel):
         else:
             self.title("Edit Account - BlueVault")
 
-        self.geometry("520x660")
+        # Centred on the screen so the create / edit form is the
+        # natural focus of attention while it is open.
+        position_center(self, 520, 660)
         self.resizable(False, False)
         self.configure(bg=theme["app_bg"])
 

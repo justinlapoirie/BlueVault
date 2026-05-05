@@ -27,7 +27,7 @@ from services.settings import (
     PASSWORD_STRENGTH_OPTIONS,
     SORT_BY_OPTIONS,
 )
-from ui_controller import theme
+from ui_controller import theme, position_bottom_right
 
 
 # -----------------------------------------------------------------------------
@@ -60,7 +60,10 @@ class SettingsWindow(tk.Toplevel):
         self.callback = callback
 
         self.title(f"Settings - {username} - BlueVault")
-        self.geometry("640x780")
+        # Dock the settings dialog at the bottom-right of the screen
+        # so it doesn't cover the user's vault content while they
+        # tweak settings.
+        position_bottom_right(self, 640, 780)
         self.configure(bg=theme["app_bg"])
         self.resizable(False, True)
 
