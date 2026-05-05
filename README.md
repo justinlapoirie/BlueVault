@@ -29,21 +29,23 @@ CS370 Collaborative Project IN DEVELOPMENT by GROUP 4: Justin Lapoirie, Ethan Es
     ├── gui/
     │   ├── ui_login.py               # Master login and account creation GUI
     │   ├── ui_main_menu.py           # Main menu interface
-    │   └── ui_password_generator.py  # Password generator window
-    |   └── ui_password_auditor.py    # Password auditor window
-    |   └── ui_settings.py            # Controls global variables of BlueVaultMain.py + import/export Vault functionality
-    |   └── ui_account.py             # Store username, password, notes, and hyperlink for external applications
+    │   ├── ui_password_generator.py  # Password generator window
+    |   ├── ui_password_auditor.py    # Password auditor window
+    |   ├── ui_settings.py            # Controls global variables of BlueVaultMain.py + import/export Vault functionality
+    |   ├── ui_account.py             # Store username, password, notes, and hyperlink for external applications
+    |   └── ui_controller.py          # Interface influencing design elements of all ui files 
     ├── services/
     │   ├── login.py                  # Authentication backend
-    │   └── password_generator.py     # Password generation class
-    │   └── password_auditor.py       # Analyzes strength of password + compares to breaches
-    │   └── account.py                # Account module backend responsible for vault management
+    │   ├── password_generator.py     # Password generation class
+    │   ├── password_auditor.py       # Analyzes strength of password + compares to breaches
+    │   ├── account.py                # Account module backend responsible for vault management
+    │   └── settings.py               # Manipulates global settings variables, vault import/export
     ├── user_data/                    # Created automatically
-    |   └── accounts.json             # Encrypted master accounts (auto-generated)
-    │   └── vault_(user).json         # Encrypted username/password data for account modules, lock/unlock with associated master user
+    |   ├── accounts.json             # Encrypted master accounts (auto-generated)
+    │   ├── vault_(user).json         # Encrypted username/password data for account modules, lock/unlock with associated master user
     │   └── settings_(user).json      # stores settings information for user. Basic formatting - no need for encryption
     ├── utils/
-    │   └── common_passwords.txt      # Common passwords based on rockyou breach
+    │   ├── common_passwords.txt      # Common passwords based on rockyou breach
     │   └── entropy_calculator.py     # Entropy calculation used in account creationn and password auditor
 </pre>
 
